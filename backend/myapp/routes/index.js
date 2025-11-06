@@ -1,9 +1,18 @@
-var express = require('express');
-var router = express.Router();
+// routes/index.js
+const router = require('express').Router();
+const mongoose = require('mongoose');
 
-/* GET home page. */
-router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Express' });
+router.get('/', (_req, res) => {
+  res.json({ ok: true, service: 'sscd-backend' });
+});
+
+router.get('/MongoCheck', (_req, res) => {
+  const states = ['disconnected','connected','connecting','disconnecting'];
+  res.json({
+    ok: mongoose.connection.readyState === 1,
+    state: states[mongoose.connection.readyState] || 'unknown',
+    db: mongoose.connection.name || null
+  });
 });
 
 module.exports = router;

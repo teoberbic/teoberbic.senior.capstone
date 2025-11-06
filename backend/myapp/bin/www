@@ -1,8 +1,18 @@
 #!/usr/bin/env node
 
+/**Boot script: creates the HTTP server and starts listening**/
+
+/**
+const app = require('../app') to load your Express instance.
+
+Creates an HTTP server: http.createServer(app).
+
+Picks a port (env PORT or default 3000) and calls server.listen(port).
 /**
  * Module dependencies.
  */
+
+
 
 var app = require('../app');
 var debug = require('debug')('myapp:server');
@@ -28,6 +38,12 @@ var server = http.createServer(app);
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
+
+
+// DEBUG: load .env and show what happened
+const fs = require('fs');
+const path = require('path');
+
 
 /**
  * Normalize a port into a number, string, or false.
