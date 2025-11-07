@@ -23,7 +23,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/users', usersRouter);
-app.use('/brands', brandsRouter);
+
 app.use(express.static('public'))
 
 
@@ -70,6 +70,10 @@ mongoose
 // 3) routes
 app.use('/', indexRouter);
 
+
+
+// brands router
+app.use('/brands', brandsRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
