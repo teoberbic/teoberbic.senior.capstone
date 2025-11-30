@@ -37,6 +37,18 @@ export default function App() {
       setMsg(err.error || 'create failed')
       return
     }
+
+    // parse created brand from response and log details to console
+    const created = await res.json().catch(() => null)
+    if (created) {
+      setBrands(prev => [created, ...prev]) 
+      console.log('Brand created successfully:', created)
+    } else {
+      console.log('Brand created successfully (no response body)')
+    }
+
+    
+    console.log(res)
     setName('')
     setDomain('')
     setMsg('saved')
@@ -65,7 +77,7 @@ export default function App() {
         <ul>
           {brands.map(brand => (
             <li key={brand.id}> {/* unique key for each brand so react can identify them */}
-              <strong>{brand.name}</strong> ({brand.domain})
+              <strong>{brand.name}</strong> ({brand.domain}) || {"Created At: "} {brand.createdAt}
             </li>
           ))}
         </ul>
