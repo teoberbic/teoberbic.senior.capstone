@@ -1,6 +1,6 @@
 /**
  * scraper that scrapes, normalizes and stores data to the database
- * Note: AI snippets were used to help write the logic for scraping data from Shopify's JSON endpoints (lines 90-200),
+ * Note: AI snippets (Gemini 3.0 Thinking) were used to help write the logic for scraping data from Shopify's JSON endpoints (lines 90-200),
  * but the code was adapted and modified to match the specific schema and requirements of this project.
  * **/
 
