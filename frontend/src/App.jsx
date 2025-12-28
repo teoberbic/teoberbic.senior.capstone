@@ -32,22 +32,22 @@ export default function App() {
       body: JSON.stringify({ name: name.trim(), domain: domain.trim() }),
     })
     setLoading(false)
+    const data = await res.json().catch(() => ({}))
+
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      setMsg(err.error || 'create failed')
+      setMsg(data.error || 'create failed')
       return
     }
 
-    // parse created brand from response and log details to console
-    const created = await res.json().catch(() => null)
-    if (created) {
-      setBrands(prev => [created, ...prev]) 
-      console.log('Brand created successfully:', created)
+    // if successful, data is the created object
+    if (data && data.brand) {
+      setBrands(prev => [data.brand, ...prev])
+      console.log('Brand created successfully:', data.brand)
     } else {
-      console.log('Brand created successfully (no response body)')
+      console.log('Brand created successfully (response structure check)', data)
     }
 
-    
+
     console.log(res)
     setName('')
     setDomain('')

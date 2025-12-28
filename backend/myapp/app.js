@@ -74,3 +74,5 @@ app.use(function (err, req, res, next) {
 });
 
 module.exports = app;
+// Initialize cron jobs
+require('./jobs/cron');

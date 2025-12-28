@@ -63,6 +63,24 @@ function normalizeDomain(url) {
 }
 
 /**
+ * Check if the domain is reachable and appears to be a Shopify store.
+ * We do this by checking if /products.json exists.
+ */
+async function checkShopifyDomain(domain) {
+  const norm = normalizeDomain(domain);
+  try {
+    // Try to fetch products.json with a limit of 1 just to see if it responds
+    await axios.get(`https://${norm}/products.json?limit=1`, {
+      timeout: 5000 
+    });
+    return true; 
+  } catch (err) {
+    // If 404 or connection error, it's likely not a valid shopify store
+    throw new Error(`Domain ${norm} is not reachable or not a Shopify store (products.json check failed).`);
+  }
+}
+
+/**
  * Scrape one brand by id.
  * Used by: HTTPs route in routes/brand.js and jobs/cron.js
  */
@@ -237,4 +255,4 @@ async function scrapeAllBrandsOnce() {
   return results;
 }
 
-module.exports = { scrapeBrandById, scrapeAllBrandsOnce };
+module.exports = { scrapeBrandById, scrapeAllBrandsOnce, checkShopifyDomain };

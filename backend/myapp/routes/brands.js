@@ -10,7 +10,7 @@ var express = require('express');
 var Brand = require('../models/brand')
 var router = express.Router();
 
-var { scrapeBrandById } = require('../jobs/scraper');
+var { scrapeBrandById, checkShopifyDomain } = require('../jobs/scraper');
 
 
 
@@ -44,6 +44,11 @@ router.post('/', async (req, res, next) => {
     let brand = null;
     if (payload.domain) {
       brand = await Brand.findOne({ domain: payload.domain });
+    }
+
+    // validation: If brand doesn't exist, verify it's a real Shopify store first
+    if (!brand && payload.domain) {
+      await checkShopifyDomain(payload.domain);
     }
 
     let alreadyExisted = false;

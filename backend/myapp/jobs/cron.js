@@ -35,3 +35,13 @@ cron.schedule('0 0 * * *', () => {
 if (require.main === module) {
   runJob().then(() => console.log('Manual run in terminal finished'));
 }
+
+// Run immediately if START_CRON_ON_BOOT is set true
+if (process.env.START_CRON_ON_BOOT === 'true') {
+  console.log('Cron: START_CRON_ON_BOOT is true, running job once now...');
+  runJob()
+    .then(results => {
+      console.log('Cron startup run finished. Results:', JSON.stringify(results, null, 2));
+    })
+    .catch(err => console.error('Cron startup run error:', err));
+}
