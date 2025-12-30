@@ -40,25 +40,34 @@ router.post('/', async (req, res, next) => {
       payload.domain = normalizeDomain(payload.domain);
     }
 
-    // check if a brand with this normalized domain already exists
-    let brand = null;
+    // check if a brand with this normalized domain OR name already exists
+    let existingBrand = null;
     if (payload.domain) {
-      brand = await Brand.findOne({ domain: payload.domain });
+      existingBrand = await Brand.findOne({
+        $or: [
+          { domain: payload.domain },
+          { name: payload.name } // Check by name as well
+        ]
+      });
     }
 
-    // validation: If brand doesn't exist, verify it's a real Shopify store first
-    if (!brand && payload.domain) {
+    // if brand exists, return error immediately
+    if (existingBrand) {
+      const message = existingBrand.domain === payload.domain
+        ? `Brand with domain '${payload.domain}' already exists`
+        : `Brand with name '${payload.name}' already exists`;
+
+      return res.status(409).json({ message });
+    }
+
+    // verify it's a real Shopify store first
+    if (payload.domain) {
       await checkShopifyDomain(payload.domain);
+      payload.instagramUrl = null;
     }
 
-    let alreadyExisted = false;
-
-    // if brand does not exist then create it
-    if (!brand) {
-      brand = await Brand.create(payload);   // this actually returns the newly created Mongoose Brand document with filled in fields
-    } else {
-      alreadyExisted = true;
-    }
+    // create new brand
+    const brand = await Brand.create(payload);   // this actually returns the newly created Mongoose Brand document with filled in fields
 
     // fire off scrape in background
     scrapeBrandById(brand._id)
@@ -70,10 +79,10 @@ router.post('/', async (req, res, next) => {
       });
 
     // respond back to the user with the brand document that will be scraped
-    res.status(alreadyExisted ? 200 : 201).json({
+    // respond back to the user with the brand document that will be scraped
+    res.status(201).json({
       brand,
-      scrapeStarted: true,
-      alreadyExisted
+      scrapeStarted: true
     });
   } catch (e) {
     next(e);

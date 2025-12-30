@@ -71,9 +71,9 @@ async function checkShopifyDomain(domain) {
   try {
     // Try to fetch products.json with a limit of 1 just to see if it responds
     await axios.get(`https://${norm}/products.json?limit=1`, {
-      timeout: 5000 
+      timeout: 5000
     });
-    return true; 
+    return true;
   } catch (err) {
     // If 404 or connection error, it's likely not a valid shopify store
     throw new Error(`Domain ${norm} is not reachable or not a Shopify store (products.json check failed).`);
@@ -157,6 +157,22 @@ async function scrapeBrandById(rawBrandId) {
     page++; // if there are 250 collections we need to go to the next page
     await sleep(150); // small pause to be polite / avoid rate limits
   }
+
+
+  // Update the brand with the collections we just found for it
+  const brandCollections = Object.values(collectionMap).map(c => ({
+    _id: c._id,
+    shopifyId: c.shopifyId,
+    title: c.title,
+    handle: c.handle
+  }));
+
+  await Brand.findByIdAndUpdate(brand._id, {
+    $set: {
+      collections: brandCollections,
+      collection_count: collectionsCount
+    }
+  });
 
   //scrape products per collection and fill collection.products (with pagination)
   let totalProducts = 0;

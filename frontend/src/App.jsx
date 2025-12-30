@@ -35,7 +35,7 @@ export default function App() {
     const data = await res.json().catch(() => ({}))
 
     if (!res.ok) {
-      setMsg(data.error || 'create failed')
+      setMsg(data.message || 'create failed')
       return
     }
 
