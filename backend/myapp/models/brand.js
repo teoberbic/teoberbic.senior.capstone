@@ -9,7 +9,7 @@ const brandschema = new mongoose.Schema({
     name: { type: String, required: true },
     domain: { type: String, required: true, unique: true },
     tags: { type: [String], required: false },
-    instagramUrl: { type: String, required: false, default: null },
+    instagramUrl: { type: String, required: false, default: "" },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
     source: { type: String, default: 'manual' },

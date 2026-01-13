@@ -20,6 +20,31 @@ function normalizeDomain(url) {
   return url.replace(/^https?:\/\//, '').replace(/\/$/, ''); // remove HTTPS protocol and the slash that comes after
 }
 
+// get single brand by id (Placed first to avoid conflicts)
+router.get('/details/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    console.log('GET /brands/:id hit with ID:', id);
+
+    if (!require('mongoose').Types.ObjectId.isValid(id)) {
+      console.log('Invalid ObjectId format:', id);
+      return res.status(400).json({ message: 'Invalid Brand ID format' });
+    }
+
+    const brand = await Brand.findById(id);
+    if (!brand) {
+      console.log('Brand not found in DB for ID:', id);
+      return res.status(404).json({ message: 'Brand not found' });
+    }
+
+    console.log('Brand found:', brand.name);
+    res.json(brand);
+  } catch (e) {
+    console.error('Error fetching brand:', e);
+    next(e);
+  }
+});
+
 // get all brands from newest to oldest
 router.get('/', async (req, res, next) => {
   try { res.json(await Brand.find().sort({ createdAt: -1 })); }
@@ -63,7 +88,6 @@ router.post('/', async (req, res, next) => {
     // verify it's a real Shopify store first
     if (payload.domain) {
       await checkShopifyDomain(payload.domain);
-      payload.instagramUrl = null;
     }
 
     // create new brand

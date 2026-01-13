@@ -1,87 +1,77 @@
+// App.jsx
 /**
- * app component where user can add brands and see list of brands
+ * Comments Here were genereated by Ai for readability
+ * Main Application Entry Point
  * 
- * **/
+ * This file serves as the root component for the application's UI structure.
+ * It is responsible for setting up the Client-Side Routing using React Router.
+ * 
+ * ROUTING EXPLAINED:
+ * 1. BrowserRouter: This component wraps the entire application. It enables the use of
+ *    HTML5 history API (pushState, replaceState, popState) to keep the UI in sync with the URL.
+ * 
+ * 2. Routes: This is a container for all the possible <Route> definitions. 
+ *    It selects the component that best matches the current URL.
+ * 
+ * 3. Route: Defines a mapping between a URL path and a React Component.
+ *    - path="/": The root URL. Renders the 'Home' component (Social Feed).
+ *    - path="/brands": Renders the 'Brands' component (Management & List).
+ * 
+ * NAVIGATION:
+ * A fixed 'Navbar' component is rendered outside the <Routes> container.
+ * This ensures the navigation bar is always visible at the bottom of the screen,
+ * regardless of which page is currently active.
+ * 
+ * AI genereated me starter code for routing and navigation. I was using it to research how to implement routing with BrowserRouter and Routes. The same is said about the Navbar component.
+ * Lines (39-73) is the AI generated code for routing and navigation and the Navbar component (Copilot VScode IDE).
+ */
 
-import { useState, useEffect } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
-import getBrands from './api/getBrands'
+
+import Home from './pages/Home'
+import Brands from './pages/Brands'
+import BrandDetails from './pages/BrandDetails'
+import Social from './pages/Social'
+
+import Navbar from './components/Navbar'
 
 export default function App() {
-  const [count, setCount] = useState(0)
-  const [name, setName] = useState('')
-  const [domain, setDomain] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [msg, setMsg] = useState('') // message for user
-  const [brands, setBrands] = useState([])
-
-  // get brands on load
-  useEffect(() => {
-    getBrands().then((data) => setBrands(data))
-  }, [])
-
-  // add brand function 
-  async function onSubmit(e) {
-    e.preventDefault() // prevent default form submission so page doesn't refresh
-    if (!name.trim() || !domain.trim()) return
-    setLoading(true)
-    setMsg('')
-    const res = await fetch('api/brands', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name.trim(), domain: domain.trim() }),
-    })
-    setLoading(false)
-    const data = await res.json().catch(() => ({}))
-
-    if (!res.ok) {
-      setMsg(data.message || 'create failed')
-      return
-    }
-
-    // if successful, data is the created object
-    if (data && data.brand) {
-      setBrands(prev => [data.brand, ...prev])
-      console.log('Brand created successfully:', data.brand)
-    } else {
-      console.log('Brand created successfully (response structure check)', data)
-    }
-
-
-    console.log(res)
-    setName('')
-    setDomain('')
-    setMsg('saved')
-
-    // refresh the list after adding
-    getBrands().then((data) => setBrands(data))
-  }
-
   return (
     <>
-      <div style={{ padding: 24 }}>
-        <h2>brand add tester</h2>
+      {/* 
+        BrowserRouter initiates the routing context. 
+        Everything inside here can use routing hooks and links. 
+      */}
+      <BrowserRouter>
 
-        {/* add brand form */}
-        <form onSubmit={onSubmit} style={{ display: 'flex', gap: 8, margin: '12px 0' }}>
-          <input placeholder="Name" value={name} onChange={e => setName(e.target.value)} />
-          <input placeholder="Domain " value={domain} onChange={e => setDomain(e.target.value)} />
-          <button type="submit" disabled={loading}>{loading ? 'saving…' : 'add'}</button>
-        </form>
-        {msg && <p>{msg}</p>} {/* show message to user*/}
-      </div>
+        {/* 
+          Main Content Area 
+          The Routes component looks at the current URL and renders the matching child Route.
+        */}
+        <div className="main-content">
+          <Routes>
+            {/* Route for the Dashboard / Social Feed */}
+            <Route path="/" element={<Home />} />
 
-      {/* brands list */}
-      <div style={{ padding: 24 }}>
-        <h2>Brands List</h2>
-        <ul>
-          {brands.map(brand => (
-            <li key={brand.id}> {/* unique key for each brand so react can identify them */}
-              <strong>{brand.name}</strong> ({brand.domain}) || {"Created At: "} {brand.createdAt}
-            </li>
-          ))}
-        </ul>
-      </div>
+            {/* Route for Social Screen */}
+            <Route path="/social" element={<Social />} />
+
+            {/* Route for Brand Management (List & Add Form) */}
+            <Route path="/brands" element={<Brands />} />
+
+            {/* Route for Specific Brand Details */}
+            <Route path="/brands/:brandId" element={<BrandDetails />} />
+          </Routes>
+        </div>
+
+        {/* 
+          Global Navbar 
+          Placed outside of Routes so it persists across page changes.
+        */}
+        <Navbar />
+
+      </BrowserRouter>
     </>
   )
 }

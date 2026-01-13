@@ -9,6 +9,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  envDir: '../', // Load .env from root
   server: {
     port: 5173,
     proxy: {
@@ -17,4 +18,6 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: p => p.replace(/^\/api/, '') // '/api/brands' -> '/brands'
       }
-    }}})
+    }
+  }
+})

@@ -6,9 +6,9 @@
     "start": "node ./bin/www",
     "dev": "nodemon ./bin/www",
     "cron": "node ./jobs/cron.js"
-
   },
   "dependencies": {
+    "apify-client": "^2.21.0",
     "axios": "^1.13.2",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",

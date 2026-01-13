@@ -4,13 +4,14 @@
  * but the code was adapted and modified to match the specific schema and requirements of this project.
  * **/
 
-
-
 const axios = require('axios'); // for making HTTP requests
 const mongoose = require('mongoose');
 const Brand = require('../models/brand');
 const Collection = require('../models/collection');
 const Product = require('../models/product');
+const { scrapeInstagramPosts } = require('./instagramScraper');
+
+
 
 
 // helper functions
@@ -225,6 +226,11 @@ async function scrapeBrandById(rawBrandId) {
       await sleep(150);
     }
 
+    // --- Scrape Instagram ---
+    if (brand.instagramUrl) {
+      await scrapeInstagramPosts(brand._id, brand.instagramUrl);
+    }
+
     await Collection.findByIdAndUpdate(
       collectionDoc._id,
       { $set: { products: productIdsForCollection } }
@@ -241,6 +247,8 @@ async function scrapeBrandById(rawBrandId) {
     productsUpdated
   };
 }
+
+
 
 /**
  * Scrape all brands once.
