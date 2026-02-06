@@ -12,7 +12,13 @@ const BrandSocials = ({ brandId }) => {
             const res = await fetch(`/api/social-posts/${brandId}`);
             if (res.ok) {
                 const data = await res.json();
-                setPosts(data);
+                if (Array.isArray(data)) {
+                    setPosts(data);
+                } else {
+                    setPosts([]);
+                }
+            } else {
+                setPosts([]);
             }
         } catch (err) {
             console.error(err);

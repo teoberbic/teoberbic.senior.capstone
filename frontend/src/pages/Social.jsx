@@ -10,6 +10,8 @@
  */
 import { useState, useEffect } from 'react'
 import getBrands from '../api/getBrands'
+import BrandSocials from '../components/BrandSocials'
+import SocialFeed from '../components/SocialFeed'
 
 export default function Social() {
     const [brands, setBrands] = useState([])
@@ -31,9 +33,12 @@ export default function Social() {
             <h1>Social Screen</h1>
             <p>Unified feed of tracked competitors.</p>
 
-
-
             {brands.length === 0 && <p>No brands found.</p>}
+
+            <section style={{ marginTop: '60px', borderTop: '1px solid #eee' }}>
+                <SocialFeed brands={brands} />
+            </section>
+
         </div>
     )
 }

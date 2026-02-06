@@ -32,7 +32,11 @@ import './App.css'
 import Home from './pages/Home'
 import Brands from './pages/Brands'
 import BrandDetails from './pages/BrandDetails'
+import CollectionDetails from './pages/CollectionDetails'
+import ProductDetails from './pages/ProductDetails'
 import Social from './pages/Social'
+import Collections from './pages/Collections'
+import Products from './pages/Products'
 
 import Navbar from './components/Navbar'
 
@@ -62,6 +66,23 @@ export default function App() {
 
             {/* Route for Specific Brand Details */}
             <Route path="/brands/:brandId" element={<BrandDetails />} />
+
+            {/* Route for Specific Collection Details */}
+            <Route path="/collections/:collectionId" element={<CollectionDetails />} />
+
+            {/* Route for Specific Product Details */}
+            <Route path="/products/:productId" element={<ProductDetails />} />
+
+            {/* Route for All Collections */}
+            <Route path="/collections" element={<Collections />} />
+
+            {/* Route for All Products */}
+            <Route path="/products" element={<Products />} />
+
+            {/* Note: User requested BrandDetails has nested /collections/:id but we also have global /collections/:id. 
+                Ideally, we keep them consistent. The Plan says to just add /collections for the grid. 
+                Existing /collections/:collectionId handles details. 
+            */}
           </Routes>
         </div>
 

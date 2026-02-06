@@ -85,7 +85,7 @@ async function checkShopifyDomain(domain) {
  * Scrape one brand by id.
  * Used by: HTTPs route in routes/brand.js and jobs/cron.js
  */
-async function scrapeBrandById(rawBrandId) {
+async function scrapeBrandById(rawBrandId, options = { products: true, socials: true }) {
   const brandId = String(rawBrandId).trim(); // trim whitespace from the id
 
   if (!mongoose.Types.ObjectId.isValid(brandId)) {
@@ -98,143 +98,147 @@ async function scrapeBrandById(rawBrandId) {
     throw new Error('Brand not found');
   }
 
-  const domain = normalizeDomain(brand.domain);
-
-
-  // helper lambda just for sleeping and waiting
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-  // --- scrape collections (with pagination) ---
-  // page through collections.json using page & limit params.
-  // Adjust perPage / delay as needed for the target site.
-  const perPage = 250;
-  const collectionMap = {}; // shopifyId -> Collection doc
+  // These are used to track the number of collections and products added/updated
   let collectionsCount = 0;
-  let collectionsAdded = 0; // count var
-  let collectionsUpdated = 0; // count var
-
-  let page = 1;
-  while (true) {
-    const collectionsRes = await axios.get(`https://${domain}/collections.json`, {
-      params: { page, limit: perPage },
-      timeout: 10000 // 10 second timeout per page
-    });
-    const shopifyCollections = collectionsRes.data.collections || []; // Empty array because we dont have access to their collections
-
-    if (!shopifyCollections.length) break; // break if no collections are returned
-
-    for (const collection of shopifyCollections) {
-      const data = normalizeShopifyCollection(collection);
-
-      // Use includeResultMetadata to check if it was a new collection or an updated one
-      const result = await Collection.findOneAndUpdate(
-        { brand: brand._id, shopifyId: data.shopifyId }, // looks for collection with this brand and shopifyId
-        { $set: { ...data, brand: brand._id } }, // if found, update it
-        {
-          upsert: true, // if not found, create it
-          new: true, // return the updated document
-          setDefaultsOnInsert: true,
-          runValidators: true,
-          includeResultMetadata: true
-          // include metadata in the result ,
-          // this sends back an object with the updated document and metadata 
-          // (this is used to check if it was a new collection or an updated one)
-        }
-      );
-
-      const collectionDoc = result.value;
-
-      if (result.lastErrorObject && result.lastErrorObject.updatedExisting) {
-        collectionsUpdated++;
-      } else {
-        collectionsAdded++;
-      }
-
-      collectionMap[data.shopifyId] = collectionDoc;
-      collectionsCount++;
-    }
-
-    if (shopifyCollections.length < perPage) break; // if there are under 250 collections weve reached the end
-    page++; // if there are 250 collections we need to go to the next page
-    await sleep(150); // small pause to be polite / avoid rate limits
-  }
-
-
-  // Update the brand with the collections we just found for it
-  const brandCollections = Object.values(collectionMap).map(c => ({
-    _id: c._id,
-    shopifyId: c.shopifyId,
-    title: c.title,
-    handle: c.handle
-  }));
-
-  await Brand.findByIdAndUpdate(brand._id, {
-    $set: {
-      collections: brandCollections,
-      collection_count: collectionsCount
-    }
-  });
-
-  //scrape products per collection and fill collection.products (with pagination)
   let totalProducts = 0;
+  let collectionsAdded = 0;
+  let collectionsUpdated = 0;
   let productsAdded = 0;
   let productsUpdated = 0;
 
-  for (const [shopifyColId, collectionDoc] of Object.entries(collectionMap)) {
-    const productIdsForCollection = [];
+  const domain = normalizeDomain(brand.domain);
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-    let productPage = 1;
+
+  // --- Scrape Products (Collections -> Products) ---
+  if (options.products) {
+    // page through collections.json using page & limit params.
+    // Adjust perPage / delay as needed for the target site.
+    const perPage = 250;
+    const collectionMap = {}; // shopifyId -> Collection doc
+
+    let page = 1;
     while (true) {
-      const productsRes = await axios.get(`https://${domain}/products.json`, {
-        params: { collection_id: shopifyColId, page: productPage, limit: perPage },
-        timeout: 10000 // 10 second timeout
+      const collectionsRes = await axios.get(`https://${domain}/collections.json`, {
+        params: { page, limit: perPage },
+        timeout: 10000 // 10 second timeout per page
       });
+      const shopifyCollections = collectionsRes.data.collections || []; // Empty array because we dont have access to their collections
 
-      const shopifyProducts = productsRes.data.products || [];
-      if (!shopifyProducts.length) break;
+      if (!shopifyCollections.length) break; // break if no collections are returned
 
-      totalProducts += shopifyProducts.length;
+      for (const collection of shopifyCollections) {
+        const data = normalizeShopifyCollection(collection);
 
-      for (const rawProd of shopifyProducts) {
-        const data = normalizeShopifyProduct(rawProd);
-
-        const result = await Product.findOneAndUpdate(
-          { brand: brand._id, shopifyId: data.shopifyId },
-          { $set: { ...data, brand: brand._id, collection: collectionDoc._id } },
+        // Use includeResultMetadata to check if it was a new collection or an updated one
+        const result = await Collection.findOneAndUpdate(
+          { brand: brand._id, shopifyId: data.shopifyId }, // looks for collection with this brand and shopifyId
+          { $set: { ...data, brand: brand._id } }, // if found, update it
           {
-            upsert: true,
-            new: true,
+            upsert: true, // if not found, create it
+            new: true, // return the updated document
             setDefaultsOnInsert: true,
             runValidators: true,
             includeResultMetadata: true
+            // include metadata in the result ,
+            // this sends back an object with the updated document and metadata 
+            // (this is used to check if it was a new collection or an updated one)
           }
         );
 
-        const productDoc = result.value;
+        const collectionDoc = result.value;
 
         if (result.lastErrorObject && result.lastErrorObject.updatedExisting) {
-          productsUpdated++;
+          collectionsUpdated++;
         } else {
-          productsAdded++;
+          collectionsAdded++;
         }
 
-        productIdsForCollection.push(productDoc._id);
+        collectionMap[data.shopifyId] = collectionDoc;
+        collectionsCount++;
       }
 
-      if (shopifyProducts.length < perPage) break;
-      productPage++;
-      await sleep(150);
+      if (shopifyCollections.length < perPage) break; // if there are under 250 collections weve reached the end
+      page++; // if there are 250 collections we need to go to the next page
+      await sleep(150); // small pause to be polite / avoid rate limits
     }
 
-    // --- Scrape Instagram ---
-    if (brand.instagramUrl) {
-      await scrapeInstagramPosts(brand._id, brand.instagramUrl);
-    }
 
-    await Collection.findByIdAndUpdate(
-      collectionDoc._id,
-      { $set: { products: productIdsForCollection } }
-    );
+    // Update the brand with the collections we just found for it
+    const brandCollections = Object.values(collectionMap).map(c => ({
+      _id: c._id,
+      shopifyId: c.shopifyId,
+      title: c.title,
+      handle: c.handle
+    }));
+
+    await Brand.findByIdAndUpdate(brand._id, {
+      $set: {
+        collections: brandCollections,
+        collection_count: collectionsCount
+      }
+    });
+
+    //scrape products per collection and fill collection.products (with pagination)
+
+    for (const [shopifyColId, collectionDoc] of Object.entries(collectionMap)) {
+      const productIdsForCollection = [];
+
+      let productPage = 1;
+      while (true) {
+        const productsRes = await axios.get(`https://${domain}/products.json`, {
+          params: { collection_id: shopifyColId, page: productPage, limit: perPage },
+          timeout: 10000 // 10 second timeout
+        });
+
+        const shopifyProducts = productsRes.data.products || [];
+        if (!shopifyProducts.length) break;
+
+        totalProducts += shopifyProducts.length;
+
+        for (const rawProd of shopifyProducts) {
+          const data = normalizeShopifyProduct(rawProd);
+
+          const result = await Product.findOneAndUpdate(
+            { brand: brand._id, shopifyId: data.shopifyId },
+            { $set: { ...data, brand: brand._id, collection: collectionDoc._id } },
+            {
+              upsert: true,
+              new: true,
+              setDefaultsOnInsert: true,
+              runValidators: true,
+              includeResultMetadata: true
+            }
+          );
+
+          const productDoc = result.value;
+
+          if (result.lastErrorObject && result.lastErrorObject.updatedExisting) {
+            productsUpdated++;
+          } else {
+            productsAdded++;
+          }
+
+          productIdsForCollection.push(productDoc._id);
+        }
+
+        if (shopifyProducts.length < perPage) break;
+        productPage++;
+        await sleep(150);
+      }
+
+      await Collection.findByIdAndUpdate(
+        collectionDoc._id,
+        { $set: { products: productIdsForCollection } }
+      );
+    }
+  }
+
+  // --- Scrape Instagram Only---
+  if (options.socials && brand.instagramUrl) {
+    await scrapeInstagramPosts(brand._id, brand.instagramUrl);
+  } else if (options.socials && !brand.instagramUrl) {
+    console.log(`Skipping socials for ${brand.name} - No Instagram URL`);
   }
 
   return {
@@ -254,11 +258,11 @@ async function scrapeBrandById(rawBrandId) {
  * Scrape all brands once.
  * Used by: jobs/cron.js
  */
-async function scrapeAllBrandsOnce() {
+async function scrapeAllBrandsOnce(options = { products: true, socials: true }) {
 
   // fetch all brands from the database
   const brands = await Brand.find({});
-  console.log(`Starting scrape for ${brands.length} brands...`);
+  console.log(`Starting scrape for ${brands.length} brands... Options:`, options);
 
   const results = [];
   // iterate over each brand to scrape its data
@@ -267,9 +271,9 @@ async function scrapeAllBrandsOnce() {
     try {
 
       // call scrapeBrandById for each brand to get its collections and products
-      const result = await scrapeBrandById(brand._id);
+      const result = await scrapeBrandById(brand._id, options);
       results.push(result);
-      console.log(`Finished ${brand.name}: +${result.productsAdded} new products, ${result.productsUpdated} updated/verified products (already in DB). +${result.collectionsAdded} new collections, ${result.collectionsUpdated} updated/verified collections (already in DB).`);
+      console.log(`Finished ${brand.name}: +${result.productsAdded} new products, ${result.productsUpdated} updated/verified products. +${result.collectionsAdded} new collections.`);
     } catch (err) {
       console.error(`Failed to scrape ${brand.name}:`, err.message);
       results.push({ brandName: brand.name, error: err.message });

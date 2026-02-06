@@ -17,7 +17,8 @@ async function connectDb() {
 
 async function runJob() {
   await connectDb();
-  return await scrapeAllBrandsOnce();
+  // Default cron: Scrape products OnLY. Socials are expensive (credits) i may change this later
+  return await scrapeAllBrandsOnce({ products: true, socials: false });
 }
 
 // run every day at midnight

@@ -12,9 +12,10 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
 var brandsRouter = require('./routes/brands');
+var collectionsRouter = require('./routes/collections');
 var socialPostsRouter = require('./routes/socialPosts');
+var productsRouter = require('./routes/products');
 
 var app = express();
 
@@ -48,10 +49,11 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 // routes
-app.use('/users', usersRouter);
 app.use('/', indexRouter);
 app.use('/brands', brandsRouter);
+app.use('/collections', collectionsRouter);
 app.use('/social-posts', socialPostsRouter);
+app.use('/products', productsRouter);
 
 
 

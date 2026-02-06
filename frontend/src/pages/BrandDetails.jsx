@@ -126,6 +126,9 @@ export default function BrandDetails() {
                                 border: '1px solid #eaeaea'
                             }}>
                                 <h4 style={{ margin: '0 0 8px 0' }}>{collection.title}</h4>
+                                <Link to={`/collections/${collection._id}`} style={{ fontSize: '0.9rem', color: '#007bff', textDecoration: 'none' }}>
+                                    See details &rarr;
+                                </Link>
                             </div>
                         ))}
                     </div>

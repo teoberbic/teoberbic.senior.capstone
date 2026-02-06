@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Tag, Instagram } from 'lucide-react'; // Using icons from this library
+import { Home, Tag, Instagram, Grid, ShoppingBag } from 'lucide-react'; // Using icons from this library
 
 const Navbar = () => {
     const location = useLocation();
@@ -22,6 +22,14 @@ const Navbar = () => {
                 <Link to="/brands" style={{ ...styles.link, color: isActive('/brands') ? '#fff' : '#888' }}>
                     <Tag size={24} />
                     <span style={styles.label}>Brands</span>
+                </Link>
+                <Link to="/collections" style={{ ...styles.link, color: isActive('/collections') ? '#fff' : '#888' }}>
+                    <Grid size={24} />
+                    <span style={styles.label}>Collections</span>
+                </Link>
+                <Link to="/products" style={{ ...styles.link, color: isActive('/products') ? '#fff' : '#888' }}>
+                    <ShoppingBag size={24} />
+                    <span style={styles.label}>Products</span>
                 </Link>
             </div>
         </nav>
