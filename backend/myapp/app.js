@@ -16,6 +16,7 @@ var brandsRouter = require('./routes/brands');
 var collectionsRouter = require('./routes/collections');
 var socialPostsRouter = require('./routes/socialPosts');
 var productsRouter = require('./routes/products');
+var analyticsRouter = require('./routes/analytics');
 
 var app = express();
 
@@ -54,6 +55,7 @@ app.use('/brands', brandsRouter);
 app.use('/collections', collectionsRouter);
 app.use('/social-posts', socialPostsRouter);
 app.use('/products', productsRouter);
+app.use('/analytics', analyticsRouter);
 
 
 

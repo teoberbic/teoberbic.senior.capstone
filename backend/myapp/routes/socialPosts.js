@@ -24,4 +24,18 @@ router.get('/:brandId', async function (req, res, next) {
     }
 });
 
+/* GET all social posts*/
+router.get('/', async function (req, res, next) {
+    try {
+        // Fetch all products, populate brand name
+        const socialPosts = await SocialPost.find()
+
+        res.json(socialPosts);
+
+    } catch (error) {
+        next(error);
+    }
+});
+
+
 module.exports = router;

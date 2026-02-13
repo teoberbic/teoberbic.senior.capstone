@@ -31,6 +31,10 @@ const Navbar = () => {
                     <ShoppingBag size={24} />
                     <span style={styles.label}>Products</span>
                 </Link>
+                <Link to="/brandcomparer" style={{ ...styles.link, color: isActive('/brandcomparer') ? '#fff' : '#888' }}>
+                    <ShoppingBag size={24} />
+                    <span style={styles.label}>Brand Compare</span>
+                </Link>
             </div>
         </nav>
     );

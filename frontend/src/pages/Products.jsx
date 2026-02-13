@@ -3,6 +3,7 @@
  * 
  * Displays all products from all brands.
  * Includes filters for Price, Tags, and Product Type.
+ * Gemini 3 (Thinking) - writes the basic comments for me to seperate out the sections. I need to go back and write deeper comments so I dont forget what certain code snippets do
  */
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'

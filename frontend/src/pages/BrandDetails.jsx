@@ -7,14 +7,23 @@
  * Expiremantion on this file is still in progress
  * AI helped with debugging the brand fetching in the back end a lot (Inline Vscode IDE Microsoft Copilot) when I was stuck on why my brands werent showing up + displaying the collections. I was having issues with the collections not showing up. 
  * Specific debgubg and working code snippets (lines 21-32, 99-108, 118 -133)
+ * 
  */
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, PieChart, Pie, Cell } from 'recharts';
+
 
 export default function BrandDetails() {
     const { brandId } = useParams();
     const [brand, setBrand] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [analytics, setAnalytics] = useState(null);
+    const [analyticsHoodies, setAnalyticsHoodies] = useState(null);
+    const [analyticsAllProducts, setAnalyticsAllProducts] = useState(null);
+
+
+    const [distribution, setDistribution] = useState([]);
 
     useEffect(() => {
         const fetchBrand = async () => {
@@ -29,9 +38,34 @@ export default function BrandDetails() {
             } finally {
                 setLoading(false);
             }
+            if (brandId) {
+                fetch(`/api/analytics/brand/${brandId}?product_type=t-shirt`)
+                    .then(res => res.json())
+                    .then(data => setAnalytics(data))
+                    .catch(err => console.error(err));
+            }
+            if (brandId) {
+                fetch(`/api/analytics/brand/${brandId}?product_type=hoodie`)
+                    .then(res => res.json())
+                    .then(data => setAnalyticsHoodies(data))
+                    .catch(err => console.error(err));
+            }
+            if (brandId) {
+                fetch(`/api/analytics/brand/${brandId}`)
+                    .then(res => res.json())
+                    .then(data => setAnalyticsAllProducts(data))
+                    .catch(err => console.error(err));
+
+                fetch(`/api/analytics/brand/${brandId}/distribution`)
+                    .then(res => res.json())
+                    .then(data => setDistribution(data))
+                    .catch(err => console.error(err));
+            }
         };
         fetchBrand();
     }, [brandId]);
+
+    const COLORS = ['#8ca7beff', '#466963ff', '#584823ff', '#b38670ff', '#22222eff']; {/**Some Colors I like */ }
 
     if (loading) return <div style={{ padding: 24 }}>Loading...</div>;
 
@@ -79,6 +113,7 @@ export default function BrandDetails() {
                 marginBottom: '32px'
             }}>
                 <h3 style={{ marginTop: 0 }}>Details</h3>
+                <p>Average Price of all products: {analyticsAllProducts ? analyticsAllProducts.average_price : "Loading"}</p> {/**Ran into issues here because I trying to access a potential null var before i had it assigned so I have to make sure its not null */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
 
                     <div>
@@ -108,9 +143,70 @@ export default function BrandDetails() {
                         </div>
                     </div>
                 </div>
+                {analytics && (
+                    <section style={{ marginTop: '32px', padding: '24px', background: 'white', borderRadius: '12px' }}>
+                        <h3>Details on T-Shirts</h3>
+                        <p>Average Price: ${analytics.average_price}</p>
+                        <div style={{ height: 400 }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                    <CartesianGrid />
+                                    <XAxis type="category" dataKey="title" name="Product" hide />
+                                    <YAxis type="number" dataKey="price" name="Price" unit="$" />
+                                    <Tooltip cursor={{ strokeDasharray: '3 3' }} defaultIndex={1} />
+                                    <Scatter activeShape={{ fill: 'red' }} name="Products" data={analytics.products} fill="#8884d8" />
+                                    <ReferenceLine y={analytics.average_price} stroke="grey" label="Avg Price" />
+                                </ScatterChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </section>
+                )}
+                {analyticsHoodies && (
+                    <section style={{ marginTop: '32px', padding: '24px', background: 'white', borderRadius: '12px' }}>
+                        <h3>Details on Hoodies</h3>
+                        <p>Average Price: ${analyticsHoodies.average_price}</p>
+                        <div style={{ height: 400 }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                    <CartesianGrid />
+                                    <XAxis type="category" dataKey="title" name="Product" hide />
+                                    <YAxis type="number" dataKey="price" name="Price" unit="$" />
+                                    <Tooltip cursor={{ strokeDasharray: '3 3' }} defaultIndex={1} />
+                                    <Scatter activeShape={{ fill: 'red' }} name="Products" data={analyticsHoodies.products} fill="#8884d8" />
+                                    <ReferenceLine y={analyticsHoodies.average_price} stroke="grey" label="Avg Price" />
+                                </ScatterChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </section>
+                )}
+                {distribution.length > 0 && (
+                    <section style={{ marginTop: '32px', padding: '24px', background: 'white', borderRadius: '12px' }}>
+                        <h3>Product Type Distributions for {brand.name}</h3>
+                        <div style={{ height: 400 }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={distribution}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                        outerRadius={150}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                    >
+                                        {distribution.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </section>
+                )}
             </section>
 
-            {/* Collections Sneak Peek */}
             <section>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h2 style={{ margin: 0 }}>Collections Sneak Peek</h2>

@@ -25,6 +25,8 @@ export default function ProductDetails() {
         fetchProduct();
     }, [productId]);
 
+
+    
     const nextImage = () => {
         if (!product || !product.images) return;
         setCurrentImageIndex((prev) => (prev === product.images.length - 1 ? 0 : prev + 1));
@@ -46,6 +48,10 @@ export default function ProductDetails() {
         );
     }
 
+    
+    
+    
+    
     return (
         <div style={{ padding: '24px', paddingBottom: '100px', maxWidth: '1200px', margin: '0 auto' }}>
             {/* Breadcrumbs */}

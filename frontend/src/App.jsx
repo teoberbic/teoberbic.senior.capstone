@@ -37,6 +37,7 @@ import ProductDetails from './pages/ProductDetails'
 import Social from './pages/Social'
 import Collections from './pages/Collections'
 import Products from './pages/Products'
+import BrandComparer from './pages/brandComparer'
 
 import Navbar from './components/Navbar'
 
@@ -79,10 +80,10 @@ export default function App() {
             {/* Route for All Products */}
             <Route path="/products" element={<Products />} />
 
-            {/* Note: User requested BrandDetails has nested /collections/:id but we also have global /collections/:id. 
-                Ideally, we keep them consistent. The Plan says to just add /collections for the grid. 
-                Existing /collections/:collectionId handles details. 
-            */}
+            {/* Route for All Products */}
+            <Route path="/brandcomparer" element={<BrandComparer />} />
+
+
           </Routes>
         </div>
 
