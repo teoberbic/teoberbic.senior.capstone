@@ -21,8 +21,8 @@ async function runJob() {
   return await scrapeAllBrandsOnce({ products: true, socials: false });
 }
 
-// run every day at midnight
-cron.schedule('0 0 * * *', () => {
+// run every week on Sunday at midnight (Can change this to whatever we think is best)
+cron.schedule('0 0 * * 0', () => {
   console.log('Cron: starting scrapeAllBrandsOnce');
   runJob()
     .then(results => {

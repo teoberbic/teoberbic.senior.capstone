@@ -2,6 +2,8 @@
  * scraper that scrapes, normalizes and stores data to the database
  * Note: AI snippets (Gemini 3.0 Thinking) were used to help write the logic for scraping data from Shopify's JSON endpoints (lines 90-200),
  * but the code was adapted and modified to match the specific schema and requirements of this project.
+ * The price history checking and storing code was helped by (Gemini 3.1 thinking) lines 206-226 because I was having trouble adding and updating new products if they were updated.
+ * Specifically walking through it in the actual logic that I needed to pursue this.  
  * **/
 
 const axios = require('axios'); // for making HTTP requests
@@ -199,9 +201,34 @@ async function scrapeBrandById(rawBrandId, options = { products: true, socials: 
         for (const rawProd of shopifyProducts) {
           const data = normalizeShopifyProduct(rawProd);
 
+
+
+          // We need to check if the product already exists in our db
+          const existingProduct = await Product.findOne({ brand: brand._id, shopifyId: data.shopifyId });
+
+          // If the product does not exist, we need to create it
+          let updateQuery = {
+            $set: { ...data, brand: brand._id, collection: collectionDoc._id }
+          };
+
+          // If the product exists, we need to check if the price has changed
+          let isNewOrPriceChanged = false;
+          if (!existingProduct) {
+            isNewOrPriceChanged = true;
+          } else if (existingProduct.price !== data.price) {
+            isNewOrPriceChanged = true;
+          }
+
+          // SO If the product is new or the price has changed we need to update the price history
+          if (isNewOrPriceChanged && data.price != null) {
+            updateQuery.$push = {
+              priceHistory: { price: data.price, date: new Date() }
+            };
+          }
+
           const result = await Product.findOneAndUpdate(
             { brand: brand._id, shopifyId: data.shopifyId },
-            { $set: { ...data, brand: brand._id, collection: collectionDoc._id } },
+            updateQuery,
             {
               upsert: true,
               new: true,
