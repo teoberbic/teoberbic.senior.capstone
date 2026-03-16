@@ -7,10 +7,12 @@
  */
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useExchangeRate } from '../hooks/useExchangeRate'
 
 export default function Products() {
     const [products, setProducts] = useState([])
     const [loading, setLoading] = useState(true)
+    const { rates, convertToUSD } = useExchangeRate()
 
     // Filters
     const [searchQuery, setSearchQuery] = useState('')
@@ -190,9 +192,20 @@ export default function Products() {
                                         {product.brand?.name || 'Unknown Brand'}
                                     </div>
                                     <h3 style={{ margin: '0 0 4px 0', fontSize: '1rem', lineHeight: '1.4' }}>{product.title}</h3>
-                                    <p style={{ margin: 0, fontWeight: 500, color: '#333' }}>
-                                        {product.price ? `$${product.price}` : ''}
-                                    </p>
+                                    {product.price && (
+                                        <div style={{ marginTop: '4px' }}>
+                                            <div style={{ margin: 0, fontWeight: 500, color: '#333', fontSize: '0.95rem' }}>
+                                                {product.currency && product.currency.toUpperCase() !== 'USD'
+                                                    ? `${product.price} ${product.currency}`
+                                                    : `$${product.price}`}
+                                            </div>
+                                            {product.currency && product.currency.toUpperCase() !== 'USD' && rates && (
+                                                <div style={{ margin: 0, fontWeight: 400, color: '#888', fontSize: '0.8rem', marginTop: '2px' }}>
+                                                    ≈ ${convertToUSD(product.price, product.currency).toFixed(2)} USD
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </Link>
                         </div>

@@ -4,12 +4,18 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useExchangeRate } from '../hooks/useExchangeRate';
 
 export default function ProductDetails() {
     const { productId } = useParams();
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({ tags: '', product_type: '' });
+
+    const { rates, convertToUSD } = useExchangeRate();
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -61,12 +67,22 @@ export default function ProductDetails() {
 
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
+            const val = payload[0].value;
+            const currency = product?.currency || 'USD';
+            const isUsd = currency.toUpperCase() === 'USD';
+            const usdVal = !isUsd ? convertToUSD(val, currency) : val;
+
             return (
                 <div style={{ backgroundColor: '#111', color: '#fff', padding: '12px 16px', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
                     <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#aaa', fontWeight: 500 }}>{label}</p>
                     <p style={{ margin: 0, fontSize: '22px', fontWeight: 'bold' }}>
-                        ${payload[0].value}
+                        {isUsd ? `$${val}` : `${val} ${currency}`}
                     </p>
+                    {!isUsd && rates && (
+                        <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#888' }}>
+                            ≈ ${usdVal.toFixed(2)} USD
+                        </p>
+                    )}
                 </div>
             );
         }
@@ -180,11 +196,44 @@ export default function ProductDetails() {
 
                 {/* Right Column: Metadata */}
                 <div>
-                    <h1 style={{ margin: '0 0 16px 0', fontSize: '2.5rem', lineHeight: '1.2' }}>{product.title}</h1>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                        <h1 style={{ margin: 0, fontSize: '2.5rem', lineHeight: '1.2' }}>{product.title}</h1>
+                        <button
+                            onClick={() => {
+                                if (!isEditing) {
+                                    setEditData({
+                                        tags: product.tags ? product.tags.join(', ') : '',
+                                        product_type: product.product_type || ''
+                                    });
+                                }
+                                setIsEditing(!isEditing);
+                            }}
+                            style={{
+                                padding: '8px 16px',
+                                backgroundColor: isEditing ? '#f0f0f0' : '#000',
+                                color: isEditing ? '#333' : '#fff',
+                                border: '1px solid #ccc',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontWeight: 500
+                            }}
+                        >
+                            {isEditing ? 'Cancel' : 'Edit Info'}
+                        </button>
+                    </div>
 
                     {product.price && (
-                        <div style={{ fontSize: '1.5rem', fontWeight: 500, marginBottom: '24px', color: '#333' }}>
-                            {product.price} {product.currency || 'USD'}
+                        <div style={{ marginBottom: '24px' }}>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 600, color: '#333', lineHeight: 1.2 }}>
+                                {product.currency && product.currency.toUpperCase() !== 'USD'
+                                    ? `${product.price} ${product.currency}`
+                                    : `$${product.price}`}
+                            </div>
+                            {product.currency && product.currency.toUpperCase() !== 'USD' && rates && (
+                                <div style={{ fontSize: '1.1rem', fontWeight: 500, color: '#888', marginTop: '4px' }}>
+                                    ≈ ${convertToUSD(product.price, product.currency).toFixed(2)} USD
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -208,7 +257,10 @@ export default function ProductDetails() {
                                             tickLine={false}
                                             tickFormatter={(val) => val.split(',')[0]}
                                         />
-                                        <YAxis tick={{ fontSize: 12, fill: '#888' }} axisLine={false} tickLine={false} domain={['auto', 'auto']} tickFormatter={(val) => `$${val}`} />
+                                        <YAxis tick={{ fontSize: 12, fill: '#888' }} axisLine={false} tickLine={false} domain={['auto', 'auto']} tickFormatter={(val) => {
+                                            const curr = product?.currency || 'USD';
+                                            return curr.toUpperCase() === 'USD' ? `$${val}` : `${val} ${curr}`;
+                                        }} />
                                         <Tooltip
                                             content={<CustomTooltip />}
                                             cursor={{ stroke: '#f0f0f0', strokeWidth: 3, strokeDasharray: 'none' }}
@@ -222,10 +274,57 @@ export default function ProductDetails() {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
+                        {/* Edit Action Area */}
+                        {isEditing && (
+                            <div style={{ marginBottom: '8px' }}>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const res = await fetch(`/api/products/${productId}`, {
+                                                method: 'PUT',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    tags: editData.tags.split(',').map(t => t.trim()).filter(Boolean),
+                                                    product_type: editData.product_type
+                                                })
+                                            });
+                                            if (res.ok) {
+                                                const updated = await res.json();
+                                                setProduct(updated);
+                                                setIsEditing(false);
+                                            }
+                                        } catch (err) {
+                                            console.error(err);
+                                        }
+                                    }}
+                                    style={{
+                                        padding: '8px 16px',
+                                        backgroundColor: '#b86e32ff',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontWeight: 600,
+                                        width: '100%'
+                                    }}
+                                >
+                                    Save Changes
+                                </button>
+                            </div>
+                        )}
+
                         {/* Tags */}
                         <div>
                             <h3 style={{ fontSize: '0.9rem', textTransform: 'uppercase', color: '#888', letterSpacing: '0.05em', marginBottom: '8px' }}>Tags</h3>
-                            {product.tags && product.tags.length > 0 ? (
+                            {isEditing ? (
+                                <input
+                                    type="text"
+                                    value={editData.tags}
+                                    placeholder="Comma separated tags"
+                                    onChange={(e) => setEditData({ ...editData, tags: e.target.value })}
+                                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                                />
+                            ) : product.tags && product.tags.length > 0 ? (
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                     {product.tags.map(tag => (
                                         <span key={tag} style={{
@@ -244,9 +343,18 @@ export default function ProductDetails() {
                         {/* Product Type */}
                         <div>
                             <h3 style={{ fontSize: '0.9rem', textTransform: 'uppercase', color: '#888', letterSpacing: '0.05em', marginBottom: '8px' }}>Category</h3>
-                            <p style={{ margin: 0, color: product.product_type ? 'inherit' : '#666' }}>
-                                {product.product_type || "No category available"}
-                            </p>
+                            {isEditing ? (
+                                <input
+                                    type="text"
+                                    value={editData.product_type}
+                                    onChange={(e) => setEditData({ ...editData, product_type: e.target.value })}
+                                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                                />
+                            ) : (
+                                <p style={{ margin: 0, color: product.product_type ? 'inherit' : '#666' }}>
+                                    {product.product_type || "No category available"}
+                                </p>
+                            )}
                         </div>
 
                         {/* View on Brand Site Button (if we had the URL, which we don't directly seem to store as a full product URL but we have handle and brand domain) */}

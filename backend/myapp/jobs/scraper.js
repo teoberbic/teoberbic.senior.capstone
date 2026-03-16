@@ -201,7 +201,9 @@ async function scrapeBrandById(rawBrandId, options = { products: true, socials: 
         for (const rawProd of shopifyProducts) {
           const data = normalizeShopifyProduct(rawProd);
 
-
+          if (!data.currency && brand.baseCurrency) {
+            data.currency = brand.baseCurrency;
+          }
 
           // We need to check if the product already exists in our db
           const existingProduct = await Product.findOne({ brand: brand._id, shopifyId: data.shopifyId });

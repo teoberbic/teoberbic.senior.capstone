@@ -59,4 +59,30 @@ router.get('/details/:id', async (req, res, next) => {
     }
 });
 
+// Update collection details
+router.put('/:id', async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        if (!require('mongoose').Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid Collection ID format' });
+        }
+
+        const updatedCollection = await Collection.findByIdAndUpdate(
+            id,
+            { $set: req.body },
+            { new: true, runValidators: true }
+        ).populate('brand', 'name domain');
+
+        if (!updatedCollection) {
+            return res.status(404).json({ message: 'Collection not found' });
+        }
+
+        res.json(updatedCollection);
+    } catch (e) {
+        console.error('Error updating collection:', e);
+        next(e);
+    }
+});
+
+
 module.exports = router;

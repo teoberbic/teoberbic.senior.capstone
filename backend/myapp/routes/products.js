@@ -45,4 +45,31 @@ router.get('/details/:id', async (req, res, next) => {
     }
 });
 
+// Update product details
+router.put('/:id', async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        if (!require('mongoose').Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid Product ID format' });
+        }
+
+        const updatedProduct = await Product.findByIdAndUpdate(
+            id,
+            { $set: req.body },
+            { new: true, runValidators: true }
+        )
+            .populate('brand', 'name domain')
+            .populate('collection', 'title');
+
+        if (!updatedProduct) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        res.json(updatedProduct);
+    } catch (e) {
+        console.error('Error updating product:', e);
+        next(e);
+    }
+});
+
 module.exports = router;

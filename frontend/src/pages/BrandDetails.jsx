@@ -12,6 +12,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, PieChart, Pie, Cell } from 'recharts';
+import { useExchangeRate } from '../hooks/useExchangeRate';
 
 
 export default function BrandDetails() {
@@ -24,6 +25,11 @@ export default function BrandDetails() {
 
 
     const [distribution, setDistribution] = useState([]);
+
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({ instagramUrl: '', tags: '', baseCurrency: '' });
+
+    const { rates, convertToUSD } = useExchangeRate();
 
     useEffect(() => {
         const fetchBrand = async () => {
@@ -92,16 +98,41 @@ export default function BrandDetails() {
             </nav>
 
             {/* Header */}
-            <header style={{ marginBottom: '32px' }}>
-                <h1 style={{ margin: '0 0 8px 0', fontSize: '2.5rem' }}>{brand.name}</h1>
-                <a
-                    href={`https://${brand.domain}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: '#007bff', textDecoration: 'none', fontSize: '1.1rem' }}
+            <header style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                    <h1 style={{ margin: '0 0 8px 0', fontSize: '2.5rem' }}>{brand.name}</h1>
+                    <a
+                        href={`https://${brand.domain}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#007bff', textDecoration: 'none', fontSize: '1.1rem' }}
+                    >
+                        {brand.domain}
+                    </a>
+                </div>
+                <button
+                    onClick={() => {
+                        if (!isEditing) {
+                            setEditData({
+                                instagramUrl: brand.instagramUrl || '',
+                                tags: brand.tags ? brand.tags.join(', ') : '',
+                                baseCurrency: brand.baseCurrency || 'USD'
+                            });
+                        }
+                        setIsEditing(!isEditing);
+                    }}
+                    style={{
+                        padding: '8px 16px',
+                        backgroundColor: isEditing ? '#f0f0f0' : '#000',
+                        color: isEditing ? '#333' : '#fff',
+                        border: '1px solid #ccc',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: 500
+                    }}
                 >
-                    {brand.domain}
-                </a>
+                    {isEditing ? 'Cancel' : 'Edit Info'}
+                </button>
             </header>
 
             {/* Metadata Section */}
@@ -112,13 +143,73 @@ export default function BrandDetails() {
                 border: '1px solid #eaeaea',
                 marginBottom: '32px'
             }}>
-                <h3 style={{ marginTop: 0 }}>Details</h3>
-                <p>Average Price of all products: {analyticsAllProducts ? analyticsAllProducts.average_price : "Loading"}</p> {/**Ran into issues here because I trying to access a potential null var before i had it assigned so I have to make sure its not null */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ marginTop: 0 }}>Details</h3>
+                    {isEditing && (
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const res = await fetch(`/api/brands/${brandId}`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            instagramUrl: editData.instagramUrl,
+                                            tags: editData.tags.split(',').map(t => t.trim()).filter(Boolean),
+                                            baseCurrency: editData.baseCurrency.toUpperCase().trim()
+                                        })
+                                    });
+                                    if (res.ok) {
+                                        const updatedBrand = await res.json();
+                                        setBrand(updatedBrand);
+                                        setIsEditing(false);
+                                    } else {
+                                        console.error('Failed to update brand');
+                                    }
+                                } catch (err) {
+                                    console.error(err);
+                                }
+                            }}
+                            style={{
+                                padding: '6px 12px',
+                                backgroundColor: '#b17c1bff',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontWeight: 500
+                            }}
+                        >
+                            Save Changes
+                        </button>
+                    )}
+                </div>
+                {analyticsAllProducts && (
+                    <div style={{ marginBottom: '16px' }}>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '1rem', fontWeight: 500 }}>
+                            Average Price of all products: {analyticsAllProducts.currency && analyticsAllProducts.currency.toUpperCase() !== 'USD'
+                                ? `${analyticsAllProducts.average_price} ${analyticsAllProducts.currency}`
+                                : `$${analyticsAllProducts.average_price}`}
+                        </p>
+                        {analyticsAllProducts.currency && analyticsAllProducts.currency.toUpperCase() !== 'USD' && rates && (
+                            <p style={{ margin: 0, color: '#888', fontSize: '0.9rem' }}>
+                                ≈ ${convertToUSD(analyticsAllProducts.average_price, analyticsAllProducts.currency).toFixed(2)} USD
+                            </p>
+                        )}
+                    </div>
+                )}
+                {!analyticsAllProducts && <p>Average Price of all products: Loading</p>}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
 
                     <div>
                         <span style={{ display: 'block', fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Instagram</span>
-                        {brand.instagramUrl ? (
+                        {isEditing ? (
+                            <input
+                                type="text"
+                                value={editData.instagramUrl}
+                                onChange={(e) => setEditData({ ...editData, instagramUrl: e.target.value })}
+                                style={{ width: '100%', padding: '6px', marginTop: '4px', borderRadius: '4px', border: '1px solid #ccc' }}
+                            />
+                        ) : brand.instagramUrl ? (
                             <a href={brand.instagramUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#333' }}>
                                 {brand.instagramUrl}
                             </a>
@@ -134,25 +225,59 @@ export default function BrandDetails() {
 
                     <div>
                         <span style={{ display: 'block', fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tags</span>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
-                            {brand.tags && brand.tags.length > 0 ? brand.tags.map(tag => (
-                                <span key={tag} style={{ background: '#f0f0f0', padding: '2px 8px', borderRadius: '4px', fontSize: '12px' }}>
-                                    #{tag}
-                                </span>
-                            )) : <span>-</span>}
-                        </div>
+                        {isEditing ? (
+                            <input
+                                type="text"
+                                value={editData.tags}
+                                placeholder="Comma separated tags"
+                                onChange={(e) => setEditData({ ...editData, tags: e.target.value })}
+                                style={{ width: '100%', padding: '6px', marginTop: '4px', borderRadius: '4px', border: '1px solid #ccc' }}
+                            />
+                        ) : (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                                {brand.tags && brand.tags.length > 0 ? brand.tags.map(tag => (
+                                    <span key={tag} style={{ background: '#f0f0f0', padding: '2px 8px', borderRadius: '4px', fontSize: '12px' }}>
+                                        #{tag}
+                                    </span>
+                                )) : <span>-</span>}
+                            </div>
+                        )}
+                    </div>
+
+                    <div>
+                        <span style={{ display: 'block', fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Base Currency</span>
+                        {isEditing ? (
+                            <input
+                                type="text"
+                                value={editData.baseCurrency}
+                                placeholder="e.g. USD, EUR, NOK"
+                                onChange={(e) => setEditData({ ...editData, baseCurrency: e.target.value })}
+                                style={{ width: '100%', padding: '6px', marginTop: '4px', borderRadius: '4px', border: '1px solid #ccc' }}
+                            />
+                        ) : (
+                            <div style={{ marginTop: '4px', fontSize: '16px', fontWeight: 500 }}>
+                                {brand.baseCurrency || 'USD'}
+                            </div>
+                        )}
                     </div>
                 </div>
                 {analytics && (
                     <section style={{ marginTop: '32px', padding: '24px', background: 'white', borderRadius: '12px' }}>
                         <h3>Details on T-Shirts</h3>
-                        <p>Average Price: ${analytics.average_price}</p>
+                        <p style={{ margin: '0 0 4px 0' }}>
+                            Average Price: {analytics.currency && analytics.currency.toUpperCase() !== 'USD' ? `${analytics.average_price} ${analytics.currency}` : `$${analytics.average_price}`}
+                        </p>
+                        {analytics.currency && analytics.currency.toUpperCase() !== 'USD' && rates && (
+                            <p style={{ margin: '0 0 16px 0', color: '#888', fontSize: '0.9rem' }}>
+                                ≈ ${convertToUSD(analytics.average_price, analytics.currency).toFixed(2)} USD
+                            </p>
+                        )}
                         <div style={{ height: 400 }}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                                     <CartesianGrid />
                                     <XAxis type="category" dataKey="title" name="Product" hide />
-                                    <YAxis type="number" dataKey="price" name="Price" unit="$" />
+                                    <YAxis type="number" dataKey="price" name="Price" unit={analytics.currency && analytics.currency.toUpperCase() !== 'USD' ? ` ${analytics.currency}` : '$'} />
                                     <Tooltip cursor={{ strokeDasharray: '3 3' }} defaultIndex={1} />
                                     <Scatter activeShape={{ fill: 'red' }} name="Products" data={analytics.products} fill="#8884d8" />
                                     <ReferenceLine y={analytics.average_price} stroke="grey" label="Avg Price" />
@@ -164,13 +289,20 @@ export default function BrandDetails() {
                 {analyticsHoodies && (
                     <section style={{ marginTop: '32px', padding: '24px', background: 'white', borderRadius: '12px' }}>
                         <h3>Details on Hoodies</h3>
-                        <p>Average Price: ${analyticsHoodies.average_price}</p>
+                        <p style={{ margin: '0 0 4px 0' }}>
+                            Average Price: {analyticsHoodies.currency && analyticsHoodies.currency.toUpperCase() !== 'USD' ? `${analyticsHoodies.average_price} ${analyticsHoodies.currency}` : `$${analyticsHoodies.average_price}`}
+                        </p>
+                        {analyticsHoodies.currency && analyticsHoodies.currency.toUpperCase() !== 'USD' && rates && (
+                            <p style={{ margin: '0 0 16px 0', color: '#888', fontSize: '0.9rem' }}>
+                                ≈ ${convertToUSD(analyticsHoodies.average_price, analyticsHoodies.currency).toFixed(2)} USD
+                            </p>
+                        )}
                         <div style={{ height: 400 }}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                                     <CartesianGrid />
                                     <XAxis type="category" dataKey="title" name="Product" hide />
-                                    <YAxis type="number" dataKey="price" name="Price" unit="$" />
+                                    <YAxis type="number" dataKey="price" name="Price" unit={analyticsHoodies.currency && analyticsHoodies.currency.toUpperCase() !== 'USD' ? ` ${analyticsHoodies.currency}` : '$'} />
                                     <Tooltip cursor={{ strokeDasharray: '3 3' }} defaultIndex={1} />
                                     <Scatter activeShape={{ fill: 'red' }} name="Products" data={analyticsHoodies.products} fill="#8884d8" />
                                     <ReferenceLine y={analyticsHoodies.average_price} stroke="grey" label="Avg Price" />
@@ -232,6 +364,6 @@ export default function BrandDetails() {
                     <p style={{ color: '#666' }}>No collections found yet. Scraper might still be running.</p>
                 )}
             </section>
-        </div>
+        </div >
     );
 }

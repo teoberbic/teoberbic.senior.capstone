@@ -21,9 +21,9 @@ router.get('/brand/:brandId', async (req, res) => {
         const query = { brand: brandId };
         if (product_type) {
             query.product_type = product_type;
-            products = await Product.find(query).select('title price shopifyId product_type');
+            products = await Product.find(query).select('title price shopifyId product_type currency');
         } else {
-            products = await Product.find(query).select('title price shopifyId');
+            products = await Product.find(query).select('title price shopifyId currency');
         }
 
 
@@ -41,6 +41,7 @@ router.get('/brand/:brandId', async (req, res) => {
 
         res.json({
             average_price: parseFloat(average_price),
+            currency: validProducts.length > 0 ? (validProducts[0].currency || 'USD') : 'USD',
             products: validProducts
         });
     } catch (error) {

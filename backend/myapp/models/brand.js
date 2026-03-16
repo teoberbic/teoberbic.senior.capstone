@@ -14,6 +14,7 @@ const brandschema = new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now },
     source: { type: String, default: 'manual' },
     status: { type: String, default: 'pending' },
+    baseCurrency: { type: String, default: 'USD' },
 
     collections: [{
         _id: { type: mongoose.Schema.Types.ObjectId, ref: 'Collection' },

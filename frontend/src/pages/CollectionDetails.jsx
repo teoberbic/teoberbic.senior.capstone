@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useExchangeRate } from '../hooks/useExchangeRate';
 
 export default function CollectionDetails() {
     const { collectionId } = useParams();
     const [collection, setCollection] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({ title: '', description: '' });
+
+    const { rates, convertToUSD } = useExchangeRate();
 
     useEffect(() => {
         const fetchCollection = async () => {
@@ -55,13 +61,37 @@ export default function CollectionDetails() {
             </nav>
 
             {/* Header */}
-            <header style={{ marginBottom: '32px' }}>
-                <h1 style={{ margin: '0 0 8px 0', fontSize: '2.5rem' }}>{collection.title}</h1>
-                {collection.launchedAt && (
-                    <p style={{ color: '#666', fontSize: '0.9rem' }}>
-                        Launched: {new Date(collection.launchedAt).toLocaleDateString()}
-                    </p>
-                )}
+            <header style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                    <h1 style={{ margin: '0 0 8px 0', fontSize: '2.5rem' }}>{collection.title}</h1>
+                    {collection.launchedAt && (
+                        <p style={{ color: '#666', fontSize: '0.9rem' }}>
+                            Launched: {new Date(collection.launchedAt).toLocaleDateString()}
+                        </p>
+                    )}
+                </div>
+                <button
+                    onClick={() => {
+                        if (!isEditing) {
+                            setEditData({
+                                title: collection.title || '',
+                                description: collection.description || ''
+                            });
+                        }
+                        setIsEditing(!isEditing);
+                    }}
+                    style={{
+                        padding: '8px 16px',
+                        backgroundColor: isEditing ? '#f0f0f0' : '#000',
+                        color: isEditing ? '#333' : '#fff',
+                        border: '1px solid #ccc',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: 500
+                    }}
+                >
+                    {isEditing ? 'Cancel' : 'Edit Info'}
+                </button>
             </header>
 
             {/* Collection Details */}
@@ -76,8 +106,51 @@ export default function CollectionDetails() {
 
                     {/* Description */}
                     <div>
-                        <h3 style={{ marginTop: 0 }}>Description</h3>
-                        <p style={{ lineHeight: '1.6', color: '#444' }}>{collection.description || "No description available"}</p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <h3 style={{ marginTop: 0, marginBottom: 0 }}>Description</h3>
+                            {isEditing && (
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const res = await fetch(`/api/collections/${collectionId}`, {
+                                                method: 'PUT',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    description: editData.description
+                                                })
+                                            });
+                                            if (res.ok) {
+                                                const updated = await res.json();
+                                                setCollection(updated);
+                                                setIsEditing(false);
+                                            }
+                                        } catch (err) {
+                                            console.error(err);
+                                        }
+                                    }}
+                                    style={{
+                                        padding: '6px 12px',
+                                        backgroundColor: '#be8a1aff',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontWeight: 500
+                                    }}
+                                >
+                                    Save Changes
+                                </button>
+                            )}
+                        </div>
+                        {isEditing ? (
+                            <textarea
+                                value={editData.description}
+                                onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                                style={{ width: '100%', minHeight: '100px', padding: '12px', borderRadius: '6px', border: '1px solid #ccc', fontFamily: 'inherit', resize: 'vertical' }}
+                            />
+                        ) : (
+                            <p style={{ lineHeight: '1.6', color: '#444' }}>{collection.description || "No description available"}</p>
+                        )}
                     </div>
 
                     {/* Image */}
@@ -135,9 +208,18 @@ export default function CollectionDetails() {
                                     )}
                                     <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem' }}>{product.title}</h4>
                                     {product.price && (
-                                        <p style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>
-                                            {product.price} {product.currency || 'USD'}
-                                        </p>
+                                        <div style={{ marginTop: '8px' }}>
+                                            <div style={{ margin: 0, color: '#333', fontSize: '1rem', fontWeight: 500 }}>
+                                                {product.currency && product.currency.toUpperCase() !== 'USD'
+                                                    ? `${product.price} ${product.currency}`
+                                                    : `$${product.price}`}
+                                            </div>
+                                            {product.currency && product.currency.toUpperCase() !== 'USD' && rates && (
+                                                <div style={{ margin: 0, color: '#888', fontSize: '0.85rem', marginTop: '2px' }}>
+                                                    ≈ ${convertToUSD(product.price, product.currency).toFixed(2)} USD
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             </Link>
