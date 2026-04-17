@@ -1,14 +1,23 @@
+/**
+ * SocialFeed.jsx
+ * 
+ * component combining Instagram and TikTok embeds into a masonry layout feed
+ * 
+ * **/
+
 import React, { useState, useEffect } from 'react';
 import InstagramEmbed from './InstagramEmbed';
+import TikTokEmbed from './TikTokEmbed';
 
 const SocialFeed = ({ brands }) => {
     const [feedPosts, setFeedPosts] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [selectedSources, setSelectedSources] = useState({ Instagram: true });
+    const [selectedSources, setSelectedSources] = useState({ Instagram: true, TikTok: true });
+    const [visibleCount, setVisibleCount] = useState(30);
     const [selectedRanges, setSelectedRanges] = useState({
         last30: true,
-        last60: false,
-        last90: false,
+        last60: true,
+        last90: true,
         between30_90: false,
         between30_60: false
     });
@@ -58,7 +67,7 @@ const SocialFeed = ({ brands }) => {
                         .then(res => res.ok ? res.json() : [])
                         .then(posts => {
                             if (!Array.isArray(posts)) return [];
-                            return posts.map(post => ({ ...post, brandName: brand.name, source: 'Instagram' }));
+                            return posts.map(post => ({ ...post, brandName: brand.name, source: post.platform === 'tiktok' ? 'TikTok' : 'Instagram' }));
                         })
                         .catch(err => {
                             console.error(`Failed to fetch posts for ${brand.name}`, err);
@@ -87,7 +96,7 @@ const SocialFeed = ({ brands }) => {
 
     const filteredPosts = feedPosts.filter(post => {
         // Source Filter
-        if (!selectedSources['Instagram']) return false;
+        if (!selectedSources[post.source]) return false;
 
         // Brand Filter
         const activeBrandNames = Object.keys(selectedBrands).filter(k => selectedBrands[k]);
@@ -110,54 +119,60 @@ const SocialFeed = ({ brands }) => {
         });
     });
 
+    // Limit to visibleCount to prevent the page from freezing/loading forever due to too many embeds
+    const displayingPosts = filteredPosts.slice(0, visibleCount);
+
     if (loading) return <div style={{ padding: 20 }}>Loading feed...</div>;
 
     return (
         <div style={{
-            maxWidth: '1000px', // Wider to accommodate sidebar
-            margin: '0 auto',
-            padding: '20px 0',
+            width: '100%',
+            padding: '20px 8%',
+            boxSizing: 'border-box',
             display: 'flex',
-            gap: '40px',
+            justifyContent: 'center', // Keep main content centered
             alignItems: 'flex-start'
         }}>
             {/* Sidebar Filters */}
             <div style={{
-                width: '250px',
-                flexShrink: 0,
-                backgroundColor: 'white',
-                padding: '20px',
-                borderRadius: '8px',
-                border: '1px solid #eee',
-                position: 'sticky',
-                top: '20px',
-                maxHeight: '80vh',
-                overflowY: 'auto'
+                position: 'fixed',
+                left: '8%',
+                top: '120px',
+                width: '280px',
+                backgroundColor: '#D9D9D9',
+                padding: '32px',
+                borderRadius: '12px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                maxHeight: 'calc(100vh - 140px)',
+                overflowY: 'auto',
+                zIndex: 10
             }}>
-                <h3 style={{ marginTop: 0, marginBottom: '15px' }}>Filters</h3>
+                <h3 style={{ marginTop: 0, marginBottom: '24px', fontSize: '20px' }}>Filters</h3>
 
                 <div style={{ marginBottom: '25px' }}>
-                    <h4 style={{ fontSize: '0.9rem', marginBottom: '10px', color: '#666' }}>Source</h4>
-                    <label style={{ display: 'block', marginBottom: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                        <input
-                            type="checkbox"
-                            checked={selectedSources.Instagram}
-                            onChange={() => toggleSource('Instagram')}
-                            style={{ marginRight: '8px' }}
-                        />
-                        Instagram
-                    </label>
+                    <h4 style={{ fontSize: '1rem', marginBottom: '12px', color: '#444' }}>Source</h4>
+                    {['Instagram', 'TikTok'].map(platform => (
+                        <label key={platform} style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', cursor: 'pointer', fontSize: '1rem', fontWeight: selectedSources[platform] ? 'bold' : 'normal' }}>
+                            <input
+                                type="checkbox"
+                                checked={selectedSources[platform]}
+                                onChange={() => toggleSource(platform)}
+                                style={{ marginRight: '12px', accentColor: 'rgba(241, 82, 19, 0.93)' }}
+                            />
+                            {platform}
+                        </label>
+                    ))}
                 </div>
 
                 <div style={{ marginBottom: '25px' }}>
-                    <h4 style={{ fontSize: '0.9rem', marginBottom: '10px', color: '#666' }}>Date Range</h4>
+                    <h4 style={{ fontSize: '1rem', marginBottom: '12px', color: '#444' }}>Date Range</h4>
                     {Object.entries(dateRanges).map(([key, { label }]) => (
-                        <label key={key} style={{ display: 'block', marginBottom: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
+                        <label key={key} style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', cursor: 'pointer', fontSize: '1rem', fontWeight: selectedRanges[key] ? 'bold' : 'normal' }}>
                             <input
                                 type="checkbox"
                                 checked={selectedRanges[key]}
                                 onChange={() => toggleRange(key)}
-                                style={{ marginRight: '8px' }}
+                                style={{ marginRight: '12px', accentColor: 'rgba(241, 82, 19, 0.93)' }}
                             />
                             {label}
                         </label>
@@ -173,22 +188,22 @@ const SocialFeed = ({ brands }) => {
                             justifyContent: 'space-between',
                             alignItems: 'center',
                             cursor: 'pointer',
-                            marginBottom: '10px'
+                            marginBottom: '16px'
                         }}
                     >
-                        <h4 style={{ fontSize: '0.9rem', margin: 0, color: '#666' }}>Brand Specific</h4>
-                        <span style={{ fontSize: '0.8rem', color: '#666' }}>{isBrandsOpen ? '▼' : '▶'}</span>
+                        <h4 style={{ fontSize: '1rem', margin: 0, color: '#444' }}>Brand Specific</h4>
+                        <span style={{ fontSize: '0.9rem', color: '#444' }}>{isBrandsOpen ? '▼' : '▶'}</span>
                     </div>
 
                     {isBrandsOpen && (
-                        <div style={{ paddingLeft: '5px' }}>
+                        <div style={{ paddingLeft: '8px' }}>
                             {brands && brands.map(brand => (
-                                <label key={brand._id || brand.id} style={{ display: 'block', marginBottom: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                <label key={brand._id || brand.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', cursor: 'pointer', fontSize: '1rem', fontWeight: selectedBrands[brand.name] ? 'bold' : 'normal' }}>
                                     <input
                                         type="checkbox"
                                         checked={!!selectedBrands[brand.name]}
                                         onChange={() => toggleBrand(brand.name)}
-                                        style={{ marginRight: '8px' }}
+                                        style={{ marginRight: '12px', accentColor: 'rgba(241, 82, 19, 0.93)' }}
                                     />
                                     {brand.name}
                                 </label>
@@ -199,48 +214,55 @@ const SocialFeed = ({ brands }) => {
             </div>
 
             {/* Main Feed */}
-            <div style={{ flex: 1, maxWidth: '600px' }}>
-                <h2 style={{ marginBottom: '20px', marginTop: 0 }}>Latest Activity</h2>
+            <div style={{ width: '100%', maxWidth: '800px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <h2 style={{ marginBottom: '24px', marginTop: 0, textAlign: 'center' }}>Latest Activity</h2>
 
                 {filteredPosts.length === 0 ? (
-                    <p style={{ color: '#888' }}>No posts match your filters.</p>
+                    <p style={{ color: '#555', fontSize: '1.1rem' }}>No posts match your filters.</p>
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-                        {filteredPosts.map(post => (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', width: '100%' }}>
+                        {displayingPosts.map(post => (
                             <div key={post._id} style={{
-                                backgroundColor: 'white',
-                                borderRadius: '8px',
-                                padding: '15px',
-                                border: '1px solid #eee',
-                                boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+                                backgroundColor: '#D9D9D9',
+                                borderRadius: '12px',
+                                padding: '32px',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                             }}>
                                 <div style={{
-                                    marginBottom: '10px',
+                                    marginBottom: '20px',
                                     display: 'flex',
                                     justifyContent: 'space-between',
                                     alignItems: 'center'
                                 }}>
-                                    <span style={{ fontWeight: 'bold', color: '#555' }}>
+                                    <span style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#111' }}>
                                         {post.brandName}
                                     </span>
+                                    {/* The user requested the orange accent here */}
                                     <span style={{
-                                        fontSize: '0.7rem',
-                                        backgroundColor: '#fcd34d',
-                                        padding: '2px 6px',
-                                        borderRadius: '4px',
-                                        color: '#713f12',
-                                        fontWeight: 600
+                                        fontSize: '0.8rem',
+                                        backgroundColor: post.source === 'TikTok' ? '#000000' : 'rgba(241, 82, 19, 0.93)',
+                                        padding: '4px 12px',
+                                        borderRadius: '6px',
+                                        color: '#fff',
+                                        fontWeight: 'bold',
+                                        letterSpacing: '0.5px',
+                                        textTransform: 'uppercase'
                                     }}>
-                                        INSTAGRAM
+                                        {post.source}
                                     </span>
                                 </div>
-                                <InstagramEmbed url={post.url} />
+                                {post.source === 'TikTok' ? (
+                                    <TikTokEmbed url={post.url} />
+                                ) : (
+                                    <InstagramEmbed url={post.url} />
+                                )}
                                 {post.caption && (
                                     <p style={{
-                                        marginTop: '10px',
-                                        fontSize: '0.9rem',
+                                        marginTop: '20px',
+                                        fontSize: '1rem',
+                                        lineHeight: '1.5',
                                         color: '#333',
-                                        maxHeight: '100px',
+                                        maxHeight: '120px',
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis'
                                     }}>
@@ -250,6 +272,29 @@ const SocialFeed = ({ brands }) => {
                             </div>
                         ))}
                     </div>
+                )}
+
+                {filteredPosts.length > visibleCount && (
+                    <button 
+                        onClick={() => setVisibleCount(prev => prev + 30)}
+                        style={{
+                            marginTop: '40px',
+                            padding: '14px 40px',
+                            backgroundColor: 'rgba(241, 82, 19, 0.93)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: 'bold',
+                            fontSize: '1rem',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 6px rgba(241, 82, 19, 0.3)',
+                            transition: 'opacity 0.2s'
+                        }}
+                        onMouseOver={e => e.currentTarget.style.opacity = '0.9'}
+                        onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                    >
+                        Load More Posts
+                    </button>
                 )}
             </div>
         </div>

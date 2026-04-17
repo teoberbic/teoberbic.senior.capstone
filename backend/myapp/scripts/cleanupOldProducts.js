@@ -1,5 +1,5 @@
 /**
- * Script: cleanupOrphanedProducts.js
+ * Script: cleanupOldProducts.js
  * 
  * Purpose: 
  * This script identifies and deletes products that are orphaned.

@@ -10,7 +10,6 @@
  */
 import { useState, useEffect } from 'react'
 import getBrands from '../api/getBrands'
-import BrandSocials from '../components/BrandSocials'
 import SocialFeed from '../components/SocialFeed'
 
 export default function Social() {
@@ -22,20 +21,20 @@ export default function Social() {
 
 
     return (
-        <div style={{ padding: '24px', paddingBottom: '100px' }}>
+        <div style={{ minHeight: '100vh', width: '100%', backgroundColor: '#B3B3B3', paddingBottom: '80px', padding: '24px' }}>
             {/* Breadcrumbs */}
-            <nav style={{ marginBottom: '16px', fontSize: '14px', color: '#666' }}>
+            <nav style={{ marginBottom: '24px', fontSize: '14px', color: '#666', padding: '0 8%' }}>
                 <a href="/" style={{ color: '#888', textDecoration: 'none' }}>Home</a>
                 <span style={{ margin: '0 8px' }}>&gt;</span>
-                <span style={{ color: '#333', fontWeight: 500 }}>Social Screen</span>
+                <span style={{ color: '#333', fontWeight: 500 }}>Social</span>
             </nav>
 
-            <h1>Social Screen</h1>
-            <p>Unified feed of tracked competitors.</p>
+            <h1 style={{ textAlign: 'center', marginBottom: '8px', paddingTop: '8px' }}>Social Feed</h1>
+            <p style={{ textAlign: 'center', color: '#555', marginBottom: '48px' }}>Unified feed of tracked competitors.</p>
 
-            {brands.length === 0 && <p>No brands found.</p>}
+            {brands.length === 0 && <p style={{ textAlign: 'center', color: '#555' }}>No brands found.</p>}
 
-            <section style={{ marginTop: '60px', borderTop: '1px solid #eee' }}>
+            <section>
                 <SocialFeed brands={brands} />
             </section>
 

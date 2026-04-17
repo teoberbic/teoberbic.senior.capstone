@@ -1,8 +1,12 @@
-
 /**
- * cron job that scrapes all brands once a day
+ * cron.js
  * 
- * **/
+ * This is the page for a cron job that scrapes all brands once a day
+ * You may need to change the cron schedule to whatever you think is best
+ * You can also run this manually by running node cron.js in the terminal
+ * 
+ * 
+ */
 
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });
@@ -21,8 +25,8 @@ async function runJob() {
   return await scrapeAllBrandsOnce({ products: true, socials: false });
 }
 
-// run every day at midnight
-cron.schedule('0 0 * * *', () => {
+// run every week on Sunday at midnight (Can change this to whatever we think is best)
+cron.schedule('0 0 * * 0', () => {
   console.log('Cron: starting scrapeAllBrandsOnce');
   runJob()
     .then(results => {

@@ -1,4 +1,6 @@
 /**
+ * brand.js
+ * 
  * brand model that stores brands from Shopify
  * 
  * **/
@@ -10,10 +12,10 @@ const brandschema = new mongoose.Schema({
     domain: { type: String, required: true, unique: true },
     tags: { type: [String], required: false },
     instagramUrl: { type: String, required: false, default: "" },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
+    tiktokUrl: { type: String, required: false, default: "" },
     source: { type: String, default: 'manual' },
     status: { type: String, default: 'pending' },
+    baseCurrency: { type: String, default: 'USD' },
 
     collections: [{
         _id: { type: mongoose.Schema.Types.ObjectId, ref: 'Collection' },
@@ -22,6 +24,8 @@ const brandschema = new mongoose.Schema({
         handle: { type: String }
     }],
     collection_count: { type: Number, default: 0 },
-})
+},
+    { timestamps: true }
+)
 
 module.exports = mongoose.model('Brand', brandschema);

@@ -1,6 +1,8 @@
 /**
+ * socialPosts.js
+ * 
  * routes for social posts
- * serving back social posts from DB
+ * serving back all of my social posts from DB
  * 
  * **/
 
@@ -29,6 +31,8 @@ router.get('/', async function (req, res, next) {
     try {
         // Fetch all products, populate brand name
         const socialPosts = await SocialPost.find()
+            .sort({ postedAt: -1 })
+            .limit(5000);
 
         res.json(socialPosts);
 

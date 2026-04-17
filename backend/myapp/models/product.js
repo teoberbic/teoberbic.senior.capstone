@@ -1,4 +1,6 @@
 /**
+ * product.js
+ * 
  * product model that stores products from Shopify
  * 
  * **/
@@ -30,7 +32,13 @@ const productSchema = new mongoose.Schema(
 
     images: [{ type: String }],
     tags: [{ type: String }],                     // split from Shopify tags string
-    product_type: { type: String }
+    product_type: { type: String },
+
+    // Have to add this for the price history to be able to store the price over time for a product
+    priceHistory: [{
+      price: { type: Number },
+      date: { type: Date, default: Date.now }
+    }]
     //later if we want to add sizes, colors, etc.
   },
   { timestamps: true }

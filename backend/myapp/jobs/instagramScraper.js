@@ -1,5 +1,8 @@
 /**
- * Scrape Instagram posts for a brand using Apify (this is a web based instaa scraper).
+ * instagramScraper.js
+ * 
+ * Scrape Instagram posts for a brand using Apify (this is a web based instaa scraper). 
+ * Passes a brand's URL to Apify, waits for Apify to fetch the latest Instagram posts, and then saves those posts into our database.
  * Note: AI snippets (Gemini 3.0 Thinking) were used to help write the logic for scraping data from Instagram's Apify Actor.
  * Specifically, parts of the scrapeInstagramPosts function (lines 20-70)
  */
@@ -10,7 +13,7 @@ const apifyClient = new ApifyClient({
     token: process.env.APIFY_API_TOKEN,
 });
 
-
+// Makes sure that the brand has an Instagram URL and that we have an Apify API Token
 async function scrapeInstagramPosts(brandId, instagramUrl) {
     if (!instagramUrl || !process.env.APIFY_API_TOKEN) {
         console.log(`Skipping Instagram scrape for ${brandId}: Missing URL or API Token`);
@@ -25,7 +28,7 @@ async function scrapeInstagramPosts(brandId, instagramUrl) {
         const username = usernameMatch ? usernameMatch[1] : instagramUrl;
         const profileUrl = `https://www.instagram.com/${username}`;
 
-        // Apify Input
+        // Apify Scraper Input
         const input = {
             "directUrls": [
                 profileUrl
@@ -49,6 +52,8 @@ async function scrapeInstagramPosts(brandId, instagramUrl) {
 
         let newPosts = 0;
 
+        // Loops through every post that Apify found. It formats the URL for the post, and then calls findOneAndUpdate using { upsert: true }
+        // to update the database if the post already exists, or create it if it doesn't.
         for (const item of items) {
             const postUrl = item.url || item.postUrl || `https://www.instagram.com/p/${item.shortCode}`;
 

@@ -6,7 +6,6 @@
 const getBrands = async () => {
     const response = await fetch('/api/brands')
     const data = await response.json()
-    console.log(data)
     return data
 }
 

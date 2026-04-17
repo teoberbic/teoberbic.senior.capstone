@@ -1,4 +1,6 @@
 /**
+ * brands.js
+ * 
  * routes for brands
  * serving back brands from DB
  * taking in new brand and creating it
@@ -8,6 +10,7 @@
 
 var express = require('express');
 var Brand = require('../models/brand')
+var Product = require('../models/product')
 var router = express.Router();
 
 var { scrapeBrandById, checkShopifyDomain } = require('../jobs/scraper');
@@ -123,7 +126,66 @@ router.get('/:brandId/scrape', async (req, res) => {
     res.status(500).json({ message: 'Scrape failed', error: err.message });
   }
 });
+// Update brand details
+router.put('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!require('mongoose').Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid Brand ID format' });
+    }
 
+    const updatedBrand = await Brand.findByIdAndUpdate(
+      id,
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
 
+    if (!updatedBrand) {
+      return res.status(404).json({ message: 'Brand not found' });
+    }
+
+    // If a baseCurrency is provided in the update, cascade the update to all products belonging to this brand
+    if (req.body.baseCurrency) {
+      await Product.updateMany(
+        { brand: id },
+        { $set: { currency: req.body.baseCurrency } }
+      );
+    }
+
+    res.json(updatedBrand);
+  } catch (e) {
+    console.error('Error updating brand:', e);
+    next(e);
+  }
+});
+
+// Delete brand and cascade-delete related data
+var Collection = require('../models/collection');
+var SocialPost = require('../models/socialPost');
+
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!require('mongoose').Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid Brand ID format' });
+    }
+
+    const brand = await Brand.findById(id);
+    if (!brand) {
+      return res.status(404).json({ message: 'Brand not found' });
+    }
+
+    // Cascade delete: products, collections, social posts
+    await Product.deleteMany({ brand: id });
+    await Collection.deleteMany({ brand: id });
+    await SocialPost.deleteMany({ brandId: id });
+    await Brand.findByIdAndDelete(id);
+
+    res.json({ message: `Brand "${brand.name}" and all related data deleted successfully.` });
+  } catch (e) {
+    console.error('Error deleting brand:', e);
+    next(e);
+  }
+});
 
 module.exports = router;

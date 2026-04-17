@@ -1,4 +1,6 @@
 /**
+ * collection.js
+ * 
  * collection model that stores collections from Shopify
  * 
  * **/

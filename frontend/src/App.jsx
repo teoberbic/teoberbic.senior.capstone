@@ -38,6 +38,7 @@ import Social from './pages/Social'
 import Collections from './pages/Collections'
 import Products from './pages/Products'
 import BrandComparer from './pages/brandComparer'
+import Emails from './pages/Emails'
 
 import Navbar from './components/Navbar'
 
@@ -83,6 +84,8 @@ export default function App() {
             {/* Route for All Products */}
             <Route path="/brandcomparer" element={<BrandComparer />} />
 
+            {/* Route for Competitor Emails */}
+            <Route path="/emails" element={<Emails />} />
 
           </Routes>
         </div>
