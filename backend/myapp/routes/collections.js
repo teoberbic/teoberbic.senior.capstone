@@ -1,8 +1,12 @@
 /*
-The code on line 13 , 47 & 48 was made aware to me by Gemini 3 (Thinking). 
-I orgiannly had it where i would return the entire brand object seperately, then i would merge it with the collection (on line 13) object. The same thing was done for products (on line 47 & 48)
-But it showed me the populate method, which is a mongoose method that allows you to populate a field with the document from another collection. 
-
+* collections.js
+*
+* routes for collections
+* serving back collections from DB
+*
+* The code on (.populate('brand', 'name domain');) , (.populate('brand', 'name domain') // Populate basic brand info) , (.populate('products', 'title handle images price');) was made aware to me by Gemini 3 (Thinking). 
+* I orgiannly had it where i would return the entire brand object seperately, then i would merge it with the collection (on line 13) object. The same thing was done for products (on line 47 & 48)
+* But it showed me the populate method, which is a mongoose method that allows you to populate a field with the document from another collection. 
 */
 
 var express = require('express');

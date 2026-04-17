@@ -10,13 +10,15 @@
  * 
  */
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, PieChart, Pie, Cell } from 'recharts';
 import { useExchangeRate } from '../hooks/useExchangeRate';
+import BrandSocials from '../components/BrandSocials';
 
 
 export default function BrandDetails() {
     const { brandId } = useParams();
+    const navigate = useNavigate();
     const [brand, setBrand] = useState(null);
     const [loading, setLoading] = useState(true);
     const [analytics, setAnalytics] = useState(null);
@@ -27,7 +29,7 @@ export default function BrandDetails() {
     const [distribution, setDistribution] = useState([]);
 
     const [isEditing, setIsEditing] = useState(false);
-    const [editData, setEditData] = useState({ instagramUrl: '', tags: '', baseCurrency: '' });
+    const [editData, setEditData] = useState({ instagramUrl: '', tiktokUrl: '', tags: '', baseCurrency: '' });
 
     const { rates, convertToUSD } = useExchangeRate();
 
@@ -45,13 +47,13 @@ export default function BrandDetails() {
                 setLoading(false);
             }
             if (brandId) {
-                fetch(`/api/analytics/brand/${brandId}?product_type=t-shirt`)
+                fetch(`/api/analytics/brand/${brandId}?product_type=T-Shirt`)
                     .then(res => res.json())
                     .then(data => setAnalytics(data))
                     .catch(err => console.error(err));
             }
             if (brandId) {
-                fetch(`/api/analytics/brand/${brandId}?product_type=hoodie`)
+                fetch(`/api/analytics/brand/${brandId}?product_type=Hoodie`)
                     .then(res => res.json())
                     .then(data => setAnalyticsHoodies(data))
                     .catch(err => console.error(err));
@@ -115,6 +117,7 @@ export default function BrandDetails() {
                         if (!isEditing) {
                             setEditData({
                                 instagramUrl: brand.instagramUrl || '',
+                                tiktokUrl: brand.tiktokUrl || '',
                                 tags: brand.tags ? brand.tags.join(', ') : '',
                                 baseCurrency: brand.baseCurrency || 'USD'
                             });
@@ -133,7 +136,61 @@ export default function BrandDetails() {
                 >
                     {isEditing ? 'Cancel' : 'Edit Info'}
                 </button>
+                <button
+                    onClick={async () => {
+                        if (!window.confirm(`Are you sure you want to delete "${brand.name}"? This will remove all collections, products, and social posts for this brand.`)) return;
+                        try {
+                            const res = await fetch(`/api/brands/${brandId}`, { method: 'DELETE' });
+                            if (res.ok) {
+                                navigate('/brands');
+                            } else {
+                                const data = await res.json();
+                                alert(data.message || 'Delete failed');
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            alert('Error deleting brand');
+                        }
+                    }}
+                    style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#c0392b',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: 500,
+                        marginLeft: '8px'
+                    }}
+                >
+                    Delete Brand
+                </button>
             </header>
+
+            {/* Scraping Indicator for New Brands */}
+            {brand.createdAt && (new Date() - new Date(brand.createdAt)) < 1000 * 60 * 2 && (
+                <div style={{
+                    backgroundColor: '#fff3e0',
+                    color: '#e65100',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    marginBottom: '24px',
+                    border: '1px solid #ffcc80',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    boxShadow: '0 2px 8px rgba(230, 81, 0, 0.1)'
+                }}>
+                    <span style={{ fontSize: '1.4rem' }}>ATTENTION</span>
+                    <div>
+                        <strong style={{ display: 'block', fontSize: '1.05rem', marginBottom: '4px' }}>Scraping in progress...</strong>
+                        <p style={{ margin: 0, fontSize: '0.95rem' }}>
+                            We are actively pulling products, collections, and social posts for this brand right now.
+                            <strong> Please wait ~60 seconds and refresh the page</strong>
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Metadata Section */}
             <section style={{
@@ -154,6 +211,7 @@ export default function BrandDetails() {
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({
                                             instagramUrl: editData.instagramUrl,
+                                            tiktokUrl: editData.tiktokUrl,
                                             tags: editData.tags.split(',').map(t => t.trim()).filter(Boolean),
                                             baseCurrency: editData.baseCurrency.toUpperCase().trim()
                                         })
@@ -212,6 +270,24 @@ export default function BrandDetails() {
                         ) : brand.instagramUrl ? (
                             <a href={brand.instagramUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#333' }}>
                                 {brand.instagramUrl}
+                            </a>
+                        ) : (
+                            <span>-</span>
+                        )}
+                    </div>
+
+                    <div>
+                        <span style={{ display: 'block', fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>TikTok</span>
+                        {isEditing ? (
+                            <input
+                                type="text"
+                                value={editData.tiktokUrl}
+                                onChange={(e) => setEditData({ ...editData, tiktokUrl: e.target.value })}
+                                style={{ width: '100%', padding: '6px', marginTop: '4px', borderRadius: '4px', border: '1px solid #ccc' }}
+                            />
+                        ) : brand.tiktokUrl ? (
+                            <a href={brand.tiktokUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#333' }}>
+                                {brand.tiktokUrl}
                             </a>
                         ) : (
                             <span>-</span>
@@ -363,6 +439,13 @@ export default function BrandDetails() {
                 ) : (
                     <p style={{ color: '#666' }}>No collections found yet. Scraper might still be running.</p>
                 )}
+            </section>
+
+            <section style={{ marginTop: '48px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h2 style={{ margin: 0 }}>Social Activity</h2>
+                </div>
+                <BrandSocials brandId={brandId} />
             </section>
         </div >
     );

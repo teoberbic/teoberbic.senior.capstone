@@ -1,4 +1,12 @@
+/**
+ * brandComparer.jsx
+ * 
+ * page comparing metrics and analytics between different brands
+ * 
+ * **/
+
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 /**
  * BrandComparer.jsx
@@ -11,27 +19,31 @@ import React, { useState, useEffect } from 'react';
 
 
 const ComparisonCard = ({ data, type }) => {
-    if (!data) return <div className="h-full flex items-center justify-center bg-gray-50 border-2 border-dashed rounded-lg text-gray-400">Select {type.slice(0, -1)}</div>;
+    if (!data) return (
+        <div style={{ height: '100%', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#D9D9D9', borderRadius: '12px', color: '#555', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }}>
+            Select {type.slice(0, -1)}
+        </div>
+    );
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-sm border h-full">
+        <div style={{ backgroundColor: '#D9D9D9', padding: '32px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', height: '100%' }}>
             {type === 'Products' && data.images?.[0] && (
-                <div className="h-24 bg-gray-100 rounded mb-4 overflow-hidden flex items-center justify-center">
-                    <img src={data.images[0]} alt={data.title} className="h-full w-full object-contain" />
+                <div style={{ height: '240px', backgroundColor: '#B3B3B3', borderRadius: '8px', marginBottom: '24px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+                    <img src={data.images[0]} alt={data.title} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
                 </div>
             )}
 
 
-            <h3 className="text-xl font-bold mb-1">{data.name || data.title}</h3>
-            {data.brand && <p className="text-sm text-gray-500 mb-4">{data.brand.name}</p>}
+            <h3 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 8px 0', color: '#111' }}>{data.name || data.title}</h3>
+            {data.brand && <p style={{ fontSize: '14px', color: '#666', margin: '0 0 24px 0' }}>{data.brand.name}</p>}
 
-            <div className="space-y-4">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '32px' }}>
                 {type === 'Brands' && (
                     <>
                         <Stat label="Website" value={data.domain} link={`https://${data.domain}`} />
-                        <div className="grid grid-cols-2 gap-4">
-                            <Stat label="Collections" value={data.collection_count || 0} />
-                            <Stat label="Tags" value={data.tags?.join(', ') || 'None'} />
+                        <div style={{ display: 'flex', gap: '24px' }}>
+                            <div style={{ flex: 1 }}><Stat label="Collections" value={data.collection_count || 0} /></div>
+                            <div style={{ flex: 1 }}><Stat label="Tags" value={data.tags?.join(', ') || 'None'} /></div>
                         </div>
                     </>
                 )}
@@ -46,7 +58,7 @@ const ComparisonCard = ({ data, type }) => {
 
                 {type === 'Products' && (
                     <>
-                        <Stat label="Price" value={`$${data.price}`} css="text-2xl" />
+                        <Stat label="Price" value={data.currency && data.currency.toUpperCase() !== 'USD' ? `${data.price} ${data.currency}` : `$${data.price}`} css={{ fontSize: '24px', fontWeight: 'bold' }} />
                         <Stat label="Type" value={data.product_type} />
                         <Stat label="Tags" value={data.tags?.join(', ')} />
                     </>
@@ -56,13 +68,13 @@ const ComparisonCard = ({ data, type }) => {
     );
 };
 
-const Stat = ({ label, value, link, css = "font-medium" }) => (
-    <div>
-        <span className="text-xs uppercase text-gray-400 font-semibold">{label}</span>
+const Stat = ({ label, value, link, css = { fontWeight: '500' } }) => (
+    <div style={{ backgroundColor: '#B3B3B3', padding: '16px', borderRadius: '8px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }}>
+        <span style={{ fontSize: '12px', textTransform: 'uppercase', color: '#555', fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>{label}</span>
         {link ? (
-            <a href={link} className={`block text-blue-600 hover:underline ${css}`} target="_blank" rel="noreferrer">{value}</a>
+            <a href={link} style={{ display: 'block', color: '#0056b3', textDecoration: 'none', ...css }} target="_blank" rel="noreferrer" onMouseOver={e => e.target.style.textDecoration='underline'} onMouseOut={e => e.target.style.textDecoration='none'}>{value}</a>
         ) : (
-            <p className={`text-gray-900 ${css}`}>{value || '-'}</p>
+            <p style={{ color: '#111', margin: 0, ...css }}>{value || '-'}</p>
         )}
     </div>
 );
@@ -72,6 +84,9 @@ export default function BrandComparer() {
     const [items, setItems] = useState([]);
     const [selA, setSelA] = useState(null);
     const [selB, setSelB] = useState(null);
+
+    // Filter
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Fetch list generic
     useEffect(() => {
@@ -83,36 +98,95 @@ export default function BrandComparer() {
     }, [mode]);
 
     // Helper to generic set selection
-    const handleSet = (id, setFn) => setFn(items.find(i => i._id === id) || null);
+    const handleSet = (val, setFn) => setFn(items.find(i => i._id === val) || null);
+
+    // Apply Filter
+    const filteredItems = items.filter(i => {
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+        const itemName = (i.name || i.title || '').toLowerCase();
+        const itemBrand = (i.brand?.name || '').toLowerCase();
+        return itemName.includes(query) || itemBrand.includes(query);
+    });
 
     return (
-        <div className="p-6 max-w-7xl mx-auto pb-24">
-            <header className="mb-8 flex gap-4 border-b">
+        <div style={{ minHeight: '100vh', width: '100%', backgroundColor: '#B3B3B3', padding: '24px', paddingBottom: '80px' }}>
+            {/* Breadcrumbs */}
+            <nav style={{ marginBottom: '24px', fontSize: '14px', color: '#666', padding: '0 8%' }}>
+                <Link to="/" style={{ color: '#888', textDecoration: 'none' }}>Home</Link>
+                <span style={{ margin: '0 8px' }}>&gt;</span>
+                <span style={{ color: '#333', fontWeight: 500 }}>Compare</span>
+            </nav>
+
+            <h1 style={{ textAlign: 'center', marginBottom: '32px', paddingTop: '8px' }}>Compare</h1>
+
+            <header style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '24px', padding: '0 8%' }}>
                 {['Brands', 'Collections', 'Products'].map(m => (
-                    <button key={m} onClick={() => setMode(m)}
-                        className={`pb-2 px-4 font-medium ${mode === m ? 'border-b-2 border-black' : 'text-gray-400 focus:outline-none'}`}>
+                    <button key={m} onClick={() => { setMode(m); setSearchQuery(''); }}
+                        style={{
+                            padding: '12px 24px',
+                            fontWeight: 'bold',
+                            fontSize: '16px',
+                            backgroundColor: mode === m ? 'rgba(241, 82, 19, 0.93)' : '#D9D9D9',
+                            color: mode === m ? '#fff' : '#555',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            boxShadow: mode === m ? '0 4px 12px rgba(241, 82, 19, 0.5)' : 'none',
+                            transition: 'all 0.2s'
+                        }}>
                         {m}
                     </button>
                 ))}
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* --- FILTERS SECTION --- */}
+            <div style={{
+                backgroundColor: '#D9D9D9',
+                padding: '32px',
+                borderRadius: '12px',
+                boxShadow: '0 4px 12px rgba(241, 82, 19, 0.25)',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '24px',
+                justifyContent: 'center',
+                alignItems: 'center',
+                margin: '0 8% 40px 8%'
+            }}>
+                {/* Search */}
+                <div style={{ flex: '0 1 300px' }}>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px', color: '#333' }}>Search</label>
+                    <input
+                        type="text"
+                        placeholder={`Search ${mode.toLowerCase()}...`}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}
+                    />
+                </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '32px', padding: '0 8%', flexDirection: 'row' }}>
                 {/* Selector A */}
-                <div className="space-y-4">
-                    <select className="w-full p-2 border rounded" onChange={e => handleSet(e.target.value, setSelA)}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <select style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #999', backgroundColor: '#fff', fontSize: '16px' }} onChange={e => handleSet(e.target.value, setSelA)}>
                         <option value="">Select {mode.slice(0, -1)} A...</option>
-                        {items.map(i => <option key={i._id} value={i._id}>{i.name || i.title}</option>)}
+                        {filteredItems.map(i => <option key={i._id} value={i._id}>{i.name || i.title}</option>)}
                     </select>
-                    <ComparisonCard data={selA} type={mode} />
+                    <div style={{ flex: 1 }}>
+                        <ComparisonCard data={selA} type={mode} />
+                    </div>
                 </div>
 
                 {/* Selector B */}
-                <div className="space-y-4">
-                    <select className="w-full p-2 border rounded" onChange={e => handleSet(e.target.value, setSelB)}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <select style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #999', backgroundColor: '#fff', fontSize: '16px' }} onChange={e => handleSet(e.target.value, setSelB)}>
                         <option value="">Select {mode.slice(0, -1)} B...</option>
-                        {items.map(i => <option key={i._id} value={i._id}>{i.name || i.title}</option>)}
+                        {filteredItems.map(i => <option key={i._id} value={i._id}>{i.name || i.title}</option>)}
                     </select>
-                    <ComparisonCard data={selB} type={mode} />
+                    <div style={{ flex: 1 }}>
+                        <ComparisonCard data={selB} type={mode} />
+                    </div>
                 </div>
             </div>
         </div>

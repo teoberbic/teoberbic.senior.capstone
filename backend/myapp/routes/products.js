@@ -1,8 +1,35 @@
+/**
+ * products.js
+ * 
+ * routes for products
+ * serving back all of my products from DB
+ * 
+ * **/
+
 var express = require('express');
 var router = express.Router();
 var Product = require('../models/product');
+const { autoClassifyVibes } = require('../jobs/scraper');
 
-var Product = require('../models/product');
+// ONE-TIME MIGRATION: Purge old tags and apply AI vibes retroactively
+router.post('/migratevibes', async (req, res, next) => {
+    try {
+        console.log("Starting massive Vibe migration over HTTP...");
+        const products = await Product.find({});
+        let modified = 0;
+        
+        for (const p of products) {
+            const newTags = autoClassifyVibes(p.title, p.handle, '');
+            p.tags = newTags;
+            await p.save();
+            modified++;
+        }
+        res.json({ message: `Successfully normalized vibes for ${modified} products.` });
+    } catch (e) {
+        console.error("Migration error:", e);
+        res.status(500).json({ error: e.message });
+    }
+});
 
 // Get all products
 router.get('/', async (req, res, next) => {
@@ -10,11 +37,9 @@ router.get('/', async (req, res, next) => {
         // Fetch all products, populate brand name
         const products = await Product.find()
             .populate('brand', 'name')
-            .limit(500); // limit to 500 for now
-
-        const allProducts = await Product.find().populate('brand', 'name');
-
-        res.json(allProducts);
+            .sort({ createdAt: -1 })
+            .limit(5000);
+        res.json(products);
     } catch (e) {
         console.error('Error fetching products:', e);
         next(e);

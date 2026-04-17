@@ -1,4 +1,6 @@
 /**
+ * product.js
+ * 
  * product model that stores products from Shopify
  * 
  * **/

@@ -1,3 +1,10 @@
+/**
+ * useExchangeRate.js
+ * 
+ * custom React hook for fetching currency exchange rates and converting prices to USD
+ * 
+ * **/
+
 import { useState, useEffect } from 'react';
 
 export function useExchangeRate() {

@@ -1,61 +1,58 @@
-import React, { useEffect } from 'react';
+/**
+ * InstagramEmbed.jsx
+ * 
+ * natively renders Instagram posts using Instagram's official embed.js
+ * 
+ * **/
+
+import React, { useEffect, useRef } from 'react';
 
 const InstagramEmbed = ({ url }) => {
+    const embedContainer = useRef(null);
+
     useEffect(() => {
-        // Use API Key if available in environment variables
-        const apiKey = import.meta.env.VITE_IFRAMELY_API_KEY || '';
-        const scriptSrc = `//cdn.iframe.ly/embed.js${apiKey ? `?api_key=${apiKey}` : ''}`;
-
-        let script = document.querySelector(`script[src^="//cdn.iframe.ly/embed.js"]`);
-
-        if (!script) {
-            script = document.createElement('script');
-            script.src = scriptSrc;
+        // Load the official Instagram embed script if it doesn't exist
+        if (!window.instgrm) {
+            const script = document.createElement('script');
+            script.src = "//www.instagram.com/embed.js";
             script.async = true;
             document.body.appendChild(script);
         }
 
-        // Always try to load iframely content when URL changes
-        const load = () => {
-            if (window.iframely) {
-                window.iframely.load();
+        // Whenever the URL updates or script loads, tell Instagram to process any new unrendered blockquotes
+        setTimeout(() => {
+            if (window.instgrm && window.instgrm.Embeds) {
+                window.instgrm.Embeds.process();
             }
-        };
-
-        // If script is already loaded (or was just added and loaded fast), assume iframely is available or will be soon
-        // We can attach a listener to the script if not yet loaded
-        if (!script.dataset.loaded) {
-            script.addEventListener('load', () => {
-                script.dataset.loaded = 'true';
-                load();
-            });
-            // Also set it if it finishes
-            script.onload = () => {
-                script.dataset.loaded = 'true';
-                load();
-            };
-        } else {
-            load();
-        }
-
-        // Polling fallback just in case script execution allows window.iframely to appear slightly later
-        const interval = setInterval(() => {
-            if (window.iframely) {
-                window.iframely.load();
-                clearInterval(interval);
-            }
-        }, 500);
-
-        return () => clearInterval(interval);
+        }, 500); // Slight delay gives React time to paint the blockquote first
 
     }, [url]);
 
     return (
-        <div className="iframely-embed">
-            {/* Removed fixed height to allow content to expand */}
-            <div className="iframely-responsive">
-                <a href={url} data-iframely-url></a>
-            </div>
+        <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <blockquote 
+                className="instagram-media" 
+                data-instgrm-permalink={url} 
+                data-instgrm-version="14" 
+                style={{
+                    background: '#FFF',
+                    border: '0',
+                    borderRadius: '3px',
+                    boxShadow: '0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)',
+                    margin: '1px',
+                    maxWidth: '400px',
+                    minWidth: '326px',
+                    padding: '0',
+                    width: '100%' // let it stretch 
+                }}
+            >
+                {/* Fallback text link while the script loads */}
+                <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                    <a href={url} style={{ color: '#000', textDecoration: 'none', fontFamily: 'Arial,sans-serif' }}>
+                        View this post on Instagram
+                    </a>
+                </div>
+            </blockquote>
         </div>
     );
 };

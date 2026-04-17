@@ -19,8 +19,10 @@ export default function Products() {
     const [priceFilter, setPriceFilter] = useState('All')
     const [typeFilter, setTypeFilter] = useState('All')
     const [tagFilter, setTagFilter] = useState('All') // New Tag Filter
+    const [brandFilter, setBrandFilter] = useState('All')
     const [availableTypes, setAvailableTypes] = useState([])
     const [availableTags, setAvailableTags] = useState([]) // New Available Tags State
+    const [availableBrands, setAvailableBrands] = useState([])
 
     useEffect(() => {
         fetch('/api/products')
@@ -42,6 +44,15 @@ export default function Products() {
                 console.error('Error fetching products:', err)
                 setLoading(false)
             })
+
+        // Fetch all brands separately so the dropdown always shows every brand
+        fetch('/api/brands')
+            .then(res => res.json())
+            .then(data => {
+                const brandNames = data.map(b => b.name).filter(Boolean).sort()
+                setAvailableBrands(brandNames)
+            })
+            .catch(err => console.error('Error fetching brands:', err))
     }, [])
 
     const filteredProducts = products.filter(product => {
@@ -68,39 +79,45 @@ export default function Products() {
         // 4. Tag Filter
         const matchesTag = tagFilter === 'All' || (product.tags && product.tags.includes(tagFilter))
 
-        return matchesSearch && matchesPrice && matchesType && matchesTag
+        // 5. Brand Filter
+        const matchesBrand = brandFilter === 'All' || (product.brand?.name === brandFilter)
+
+        return matchesSearch && matchesPrice && matchesType && matchesTag && matchesBrand
     })
 
     // Optimization: Show only first 50 if no filters are active, otherwise show all matches.
-    const isFiltering = searchQuery !== '' || priceFilter !== 'All' || typeFilter !== 'All' || tagFilter !== 'All'
+    const isFiltering = searchQuery !== '' || priceFilter !== 'All' || typeFilter !== 'All' || tagFilter !== 'All' || brandFilter !== 'All'
     const productsToDisplay = isFiltering ? filteredProducts : filteredProducts.slice(0, 50)
 
     return (
-        <div style={{ padding: '24px', paddingBottom: '100px' }}>
+        <div style={{ minHeight: '100vh', width: '100%', backgroundColor: '#B3B3B3', paddingBottom: '100px', padding: '24px', boxSizing: 'border-box' }}>
 
             {/* Breadcrumbs */}
-            <nav style={{ marginBottom: '16px', fontSize: '14px', color: '#666' }}>
+            <nav style={{ marginBottom: '16px', fontSize: '14px', color: '#666', padding: '0 8%' }}>
                 <Link to="/" style={{ color: '#888', textDecoration: 'none' }}>Home</Link>
                 <span style={{ margin: '0 8px' }}>&gt;</span>
                 <span style={{ color: '#333', fontWeight: 500 }}>Products</span>
             </nav>
 
             <header style={{ marginBottom: '24px' }}>
-                <h1 style={{ margin: '0 0 16px 0', fontSize: '2rem' }}>All Products</h1>
+                <h1 style={{ margin: '0 0 16px 0', fontSize: '2rem', padding: '0 8%' }}>All Products</h1>
 
                 {/* --- FILTERS --- */}
                 <div style={{
-                    backgroundColor: '#fff',
-                    padding: '20px',
-                    borderRadius: '8px',
-                    border: '1px solid #eaeaea',
+                    backgroundColor: '#D9D9D9',
+                    padding: '32px',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 12px rgba(241, 82, 19, 0.25)',
                     display: 'flex',
                     flexWrap: 'wrap',
                     gap: '24px',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    margin: '0 8% 40px 8%'
                 }}>
                     {/* Search */}
-                    <div style={{ flex: '1 1 300px' }}>
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px' }}>Search</label>
+                    <div style={{ flex: '0 1 300px' }}>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px', color: '#333' }}>Search</label>
                         <input
                             type="text"
                             placeholder="Search by product or brand..."
@@ -112,7 +129,7 @@ export default function Products() {
 
                     {/* Price Filter */}
                     <div>
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px' }}>Price Range</label>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px', color: '#333' }}>Price Range</label>
                         <select
                             value={priceFilter}
                             onChange={(e) => setPriceFilter(e.target.value)}
@@ -126,9 +143,24 @@ export default function Products() {
                         </select>
                     </div>
 
+                    {/* Brand Filter */}
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px', color: '#333' }}>Brand</label>
+                        <select
+                            value={brandFilter}
+                            onChange={(e) => setBrandFilter(e.target.value)}
+                            style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ddd', minWidth: '150px' }}
+                        >
+                            <option value="All">All Brands</option>
+                            {availableBrands.map(name => (
+                                <option key={name} value={name}>{name}</option>
+                            ))}
+                        </select>
+                    </div>
+
                     {/* Tag Filter */}
                     <div>
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px' }}>Tag</label>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px', color: '#333' }}>Tag</label>
                         <select
                             value={tagFilter}
                             onChange={(e) => setTagFilter(e.target.value)}
@@ -142,12 +174,12 @@ export default function Products() {
                     </div>
 
                     {/* Type Filter */}
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px' }}>Product Type</label>
+                    <div style={{ position: 'relative' }}>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px', color: '#333' }}>Product Type</label>
                         <select
                             value={typeFilter}
                             onChange={(e) => setTypeFilter(e.target.value)}
-                            style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ddd', minWidth: '150px' }}
+                            style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ddd', minWidth: '150px', width: '100%', boxSizing: 'border-box', backgroundColor: 'white', cursor: 'pointer' }}
                         >
                             <option value="All">All Types</option>
                             {availableTypes.map(type => (
@@ -159,19 +191,19 @@ export default function Products() {
             </header>
 
             {/* --- GRID --- */}
-            {loading ? <p>Loading products...</p> : (
+            {loading ? <p style={{ textAlign: 'center', color: '#555' }}>Loading products...</p> : (
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(5, 1fr)',
-                    gap: '20px'
+                    gap: '20px',
+                    padding: '0 8%'
                 }}>
                     {productsToDisplay.map(product => (
                         <div key={product._id} style={{
-                            backgroundColor: '#fff', // White bg for products? Or kept grey/white
-                            borderRadius: '2px',
-                            padding: '16px',
-                            boxShadow: '3px 3px 20px rgba(241, 82, 19, 0.93)', // Orange glow
-                            border: '1px solid #eaeaea',
+                            backgroundColor: '#D9D9D9', // Updated background
+                            borderRadius: '12px',
+                            padding: '24px',
+                            boxShadow: '0 4px 12px rgba(241, 82, 19, 0.25)', // Softer glow
                             display: 'flex',
                             flexDirection: 'column',
                             justifyContent: 'space-between',
@@ -179,7 +211,7 @@ export default function Products() {
                         }}>
                             <Link to={`/products/${product._id}`} style={{ textDecoration: 'none', color: 'inherit', flex: 1, display: 'flex', flexDirection: 'column' }}>
                                 {/* Image */}
-                                <div style={{ marginBottom: '12px', height: '200px', backgroundColor: '#f9f9f9', overflow: 'hidden', borderRadius: '4px' }}>
+                                <div style={{ marginBottom: '16px', height: '200px', backgroundColor: '#B3B3B3', overflow: 'hidden', borderRadius: '8px' }}>
                                     {product.images && product.images.length > 0 ? (
                                         <img src={product.images[0]} alt={product.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (

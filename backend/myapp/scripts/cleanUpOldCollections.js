@@ -29,7 +29,7 @@ const cleanup = async () => {
         console.log('Connected.');
 
         console.log('Fetching all collections...');
-        const allCollections = await Collection.find().populate('brand');
+        const allCollections = await Collection.find().populate('brand'); // grabs all collections and their associated brand data so the script can check if any collections belong to brands that have been deleted.
 
         console.log(`Total collections found: ${allCollections.length}`);
 

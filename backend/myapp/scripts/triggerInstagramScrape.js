@@ -1,4 +1,6 @@
 /**
+ * triggerInstagramScrape.js
+ * 
  * Gemini 3.0 Thinking made this file to test the instagram scraper with manual brand names.
  */
 const path = require('path');

@@ -1,9 +1,12 @@
 /**
- * scraper that scrapes, normalizes and stores data to the database
- * Note: AI snippets (Gemini 3.0 Thinking) were used to help write the logic for scraping data from Shopify's JSON endpoints (lines 90-200),
+ * scraper.js
+ * 
+ * scraper that scrapes, normalizes and stores data to the database.  It is the engine. Its overall goal is to handle the heavy lifting of pulling raw data from external sources (Shopify websites, Instagram, TikTok), 
+ * cleaning up that data into a standardized format, and cleanly updating your database. It handles price changes, categorizing items, and pulling social posts all in one place.
+ * Note: AI snippets (Gemini 3.0 Thinking) were used to help write the logic for scraping data from Shopify's JSON endpoints - scrapeBarndById function,
  * but the code was adapted and modified to match the specific schema and requirements of this project.
- * The price history checking and storing code was helped by (Gemini 3.1 thinking) lines 206-226 because I was having trouble adding and updating new products if they were updated.
- * Specifically walking through it in the actual logic that I needed to pursue this.  
+ * The price history checking and storing code was helped by (Gemini 3.1 thinking) starting at const shopifyProducts = productsRes.data.products || []; UNTIL priceHistory: { price: data.price, date: new Date() } 
+ * because I was having trouble adding and updating new products if they were updated. Specifically walking through it in the actual logic that I needed to pursue this.  
  * **/
 
 const axios = require('axios'); // for making HTTP requests
@@ -12,11 +15,93 @@ const Brand = require('../models/brand');
 const Collection = require('../models/collection');
 const Product = require('../models/product');
 const { scrapeInstagramPosts } = require('./instagramScraper');
+const { scrapeTikTokPosts } = require('./tiktokScraper');
 
 
 
 
 // helper functions
+
+// Keywords in title -> category (order: most specific first) (AI generated Gemini 3.1 Thinking)
+// A big dictionary of keywords. Because different brands name their products wildly different things, this section provides strict rules mapping certain keywords ("puffer", "fleece") 
+// into clean, consistent categories ("Outerwear").
+const TITLE_RULES = [
+  [/puffer|jacket|bomber|windbreaker|fleece|cardigan|zip[\s-]?up|full zip/i, 'Outerwear'],
+  [/hoodie|hoodies|crewneck/i, 'Hoodie'],
+  [/knit|sweater|mohair/i, 'Knitwear'],
+  [/longsleeve|long[\s-]?sleeve/i, 'Long Sleeve'],
+  [/\btee\b|t[\s-]?shirt|jersey/i, 'T-Shirt'],
+  [/\bshirt\b/i, 'Shirt'],
+  [/pants|denim(?!.*short)|bootcut|jeans|trousers|varsity pants|sweatpants/i, 'Pants'],
+  [/\bshorts\b|jorts/i, 'Shorts'],
+  [/beanie|cap\b|hat\b/i, 'Headwear'],
+  [/necklace|bracelet|chain|pendant|ring\b|charm/i, 'Jewelry'],
+  [/\bsocks?\b/i, 'Socks'],
+  [/wallet|belt|keychain|key tees|pin pack|sunglasses|lighter|scarf|sweatband|backpack/i, 'Accessories'],
+  [/\bbag\b|tote|duffle|backpack/i, 'Bags'],
+  [/sneaker|sandal|shoe|suede(?!.*jacket)/i, 'Footwear'],
+  [/swim|bikini/i, 'Swimwear'],
+  [/boxer|trunk|underwear/i, 'Underwear'],
+  [/gift card|shipping|insurance|warranty|return label|tennis|mug/i, 'Other'],
+];
+
+// Aesthetic Vibe classification heuristic dictionary
+const VIBE_RULES = [
+  [/summer|beach|linen|swim|short sleeve\b|tank top|lightweight|resort|sunglass/i, 'Summer'],
+  [/spring|floral|pastel|breeze/i, 'Spring'],
+  [/winter|puffer|fleece|heavyweight|snow|ski|knit|beanie/i, 'Winter'],
+  [/fall|autumn|corduroy|flannel/i, 'Fall'],
+  [/mediterranean|boat|crochet|riviera|coastal/i, 'Mediterranean'],
+  [/old money|tailored|polo|trench|loafer|cashmere|prep|suit/i, 'Old Money'],
+  [/y2k|rhinestone|baby tee|low rise|trucker/i, 'Y2K'],
+  [/streetwear|oversize|boxy|graphic|camo|cargo|sweats/i, 'Streetwear'],
+  [/minimalist|essential|blank|basic|monochrome|clean/i, 'Minimalist'],
+  [/techwear|nylon|gore-tex|zip|waterproof|strap|utility/i, 'Techwear'],
+  [/cozy|sweatpants|jogger|lounge|fleece/i, 'Cozy']
+];
+
+/**
+ * Automatically classify a product based on its title or handle if it doesn't have a valid category
+ */
+function autoClassifyProductType(title, handle, originalType) {
+  // If shopify already gave it one of our exact 20 normalized types, keep it
+  const validTypes = ['Outerwear', 'Hoodie', 'Knitwear', 'Long Sleeve', 'T-Shirt', 'Shirt', 'Bottoms', 'Pants', 'Shorts', 'Headwear', 'Footwear', 'Bags', 'Accessories', 'Underwear', 'Swimwear', 'Jewelry', 'Other', 'Socks', 'Tops', 'Uncategorized'];
+
+  if (originalType && validTypes.includes(originalType.trim())) {
+    return originalType.trim();
+  }
+
+  const text = `${title || ''} ${handle || ''}`;
+  for (const [pattern, category] of TITLE_RULES) {
+    if (pattern.test(text)) {
+      return category;
+    }
+  }
+
+  // If nothing matched and there is no original type, call it Uncategorized
+  return 'Uncategorized';
+}
+
+/**
+ * Automatically assign aesthetic 'vibes' to products based on text
+ */
+function autoClassifyVibes(title, handle, description) {
+  const text = `${title || ''} ${handle || ''} ${description || ''}`;
+  const vibes = new Set();
+
+  for (const [pattern, vibe] of VIBE_RULES) {
+    if (pattern.test(text)) {
+      vibes.add(vibe);
+    }
+  }
+
+  // Default to Streetwear if we somehow couldn't extract any specific vibe for this brand
+  if (vibes.size === 0) {
+    vibes.add('Streetwear');
+  }
+
+  return Array.from(vibes);
+}
 
 // normalize shopify collection with correct fields for our Collection model
 function normalizeShopifyCollection(raw) {
@@ -40,12 +125,8 @@ function normalizeShopifyProduct(raw) {
 
   let tags = [];
 
-  // normalize tags into an array of strings (shopify can return either a string or an array of strings)
-  if (typeof raw.tags === 'string') {
-    tags = raw.tags.split(',').map(t => t.trim()).filter(Boolean); // split by comma and trim whitespace
-  } else if (Array.isArray(raw.tags)) {
-    tags = raw.tags.map(t => String(t).trim()).filter(Boolean); // convert to string and trim whitespace
-  }
+  // Generate the highly curated vibe tags instead of keeping the ugly raw shopify tags
+  tags = autoClassifyVibes(raw.title, raw.handle, raw.body_html || raw.description);
 
   return {
     shopifyId: String(raw.id),
@@ -57,7 +138,7 @@ function normalizeShopifyProduct(raw) {
       ? raw.images.map(img => img.src).filter(Boolean)
       : [],
     tags,
-    product_type: raw.product_type
+    product_type: autoClassifyProductType(raw.title, raw.handle, raw.product_type)
   };
 }
 
@@ -68,6 +149,8 @@ function normalizeDomain(url) {
 /**
  * Check if the domain is reachable and appears to be a Shopify store.
  * We do this by checking if /products.json exists.
+ * Before the scraper tries to download thousands of products, it makes a tiny quick request to 
+ * check if the URL is valid, the site is online, and if it's actually built on Shopify
  */
 async function checkShopifyDomain(domain) {
   const norm = normalizeDomain(domain);
@@ -86,6 +169,13 @@ async function checkShopifyDomain(domain) {
 /**
  * Scrape one brand by id.
  * Used by: HTTPs route in routes/brand.js and jobs/cron.js
+ * Collections: It hits the brand's /collections.json endpoint, paginating through 250 items at a time. It normalizes them, and calls findOneAndUpdate({ upsert: true }) 
+ * to either create them in our DB or update them if they exist.
+ * Products: It iterates through the collections it just found and hits /products.json for each one. This is also where the clever Price History logic kicks in. 
+ * It fetches the product from our DB first (existingProduct); if the Shopify price doesn't match the DB price, it assumes the item went on sale or changed prices, 
+ * and pushes a new timestamped log into priceHistory. It then upserts the product.
+ * Socials: After finishing Shopify products, it checks if the brand has an Instagram or TikTok URL, and hands off the work to those specific mini-scrapers (like 
+ * instagramScraper.js
  */
 async function scrapeBrandById(rawBrandId, options = { products: true, socials: true }) {
   const brandId = String(rawBrandId).trim(); // trim whitespace from the id
@@ -263,11 +353,19 @@ async function scrapeBrandById(rawBrandId, options = { products: true, socials: 
     }
   }
 
-  // --- Scrape Instagram Only---
-  if (options.socials && brand.instagramUrl) {
-    await scrapeInstagramPosts(brand._id, brand.instagramUrl);
-  } else if (options.socials && !brand.instagramUrl) {
-    console.log(`Skipping socials for ${brand.name} - No Instagram URL`);
+  // --- Scrape Socials ---
+  if (options.socials) {
+    if (brand.instagramUrl) {
+      await scrapeInstagramPosts(brand._id, brand.instagramUrl);
+    } else {
+      console.log(`Skipping Instagram for ${brand.name} - No Instagram URL`);
+    }
+
+    if (brand.tiktokUrl) {
+      await scrapeTikTokPosts(brand._id, brand.tiktokUrl);
+    } else {
+      console.log(`Skipping TikTok for ${brand.name} - No TikTok URL`);
+    }
   }
 
   return {
@@ -286,6 +384,9 @@ async function scrapeBrandById(rawBrandId, options = { products: true, socials: 
 /**
  * Scrape all brands once.
  * Used by: jobs/cron.js
+ *  It pulls every single brand we have in our database and runs them through scrapeBrandById
+ one by one. 
+ This function is what gets called every night automatically by cron.js to quietly update the entire platform while we're asleep
  */
 async function scrapeAllBrandsOnce(options = { products: true, socials: true }) {
 
@@ -312,4 +413,11 @@ async function scrapeAllBrandsOnce(options = { products: true, socials: true }) 
   return results;
 }
 
-module.exports = { scrapeBrandById, scrapeAllBrandsOnce, checkShopifyDomain };
+module.exports = {
+  scrapeBrandById,
+  scrapeAllBrandsOnce,
+  checkShopifyDomain,
+  normalizeShopifyProduct, // Exported for isolated Unit Testing
+  autoClassifyProductType, // Exported for isolated Unit Testing
+  autoClassifyVibes
+};

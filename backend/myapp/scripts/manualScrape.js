@@ -1,4 +1,6 @@
 /**
+ * manualScrape.js
+ * 
  * Gemini 3.0 Thinking made this file to test scraping manually options
  */
 const path = require('path');

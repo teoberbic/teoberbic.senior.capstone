@@ -1,39 +1,53 @@
+/**
+ * Navbar.jsx
+ * 
+ * navigation bar component for the app
+ * 
+ * **/
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Tag, Instagram, Grid, ShoppingBag } from 'lucide-react'; // Using icons from this library
+import { Home, Tag, Instagram, Grid, ShoppingBag, Mail, GitCompareArrows } from 'lucide-react'; // Using icons from this library
 
 const Navbar = () => {
     const location = useLocation();
 
-    // Helper to check active state
-    const isActive = (path) => location.pathname === path;
+    // Helper to check active state — use startsWith so sub-pages highlight too
+    const isActive = (path) => path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
+
+    const activeColor = '#fff';
+    const inactiveColor = '#888';
 
     return (
         <nav style={styles.nav}>
             <div style={styles.container}>
-                <Link to="/" style={{ ...styles.link, color: isActive('/') ? '#01ce4fe8' : '#888' }}>
+                <Link to="/" style={{ ...styles.link, color: isActive('/') ? activeColor : inactiveColor }}>
                     <Home size={24} />
                     <span style={styles.label}>Home</span>
                 </Link>
-                <Link to="/social" style={{ ...styles.link, color: isActive('/social') ? '#fff' : '#888' }}>
+                <Link to="/social" style={{ ...styles.link, color: isActive('/social') ? activeColor : inactiveColor }}>
                     <Instagram size={24} />
                     <span style={styles.label}>Social</span>
                 </Link>
-                <Link to="/brands" style={{ ...styles.link, color: isActive('/brands') ? '#fff' : '#888' }}>
+                <Link to="/brands" style={{ ...styles.link, color: isActive('/brands') ? activeColor : inactiveColor }}>
                     <Tag size={24} />
                     <span style={styles.label}>Brands</span>
                 </Link>
-                <Link to="/collections" style={{ ...styles.link, color: isActive('/collections') ? '#fff' : '#888' }}>
+                <Link to="/collections" style={{ ...styles.link, color: isActive('/collections') ? activeColor : inactiveColor }}>
                     <Grid size={24} />
                     <span style={styles.label}>Collections</span>
                 </Link>
-                <Link to="/products" style={{ ...styles.link, color: isActive('/products') ? '#fff' : '#888' }}>
+                <Link to="/products" style={{ ...styles.link, color: isActive('/products') ? activeColor : inactiveColor }}>
                     <ShoppingBag size={24} />
                     <span style={styles.label}>Products</span>
                 </Link>
-                <Link to="/brandcomparer" style={{ ...styles.link, color: isActive('/brandcomparer') ? '#fff' : '#888' }}>
-                    <ShoppingBag size={24} />
-                    <span style={styles.label}>Brand Compare</span>
+                <Link to="/brandcomparer" style={{ ...styles.link, color: isActive('/brandcomparer') ? activeColor : inactiveColor }}>
+                    <GitCompareArrows size={24} />
+                    <span style={styles.label}>Compare</span>
+                </Link>
+                <Link to="/emails" style={{ ...styles.link, color: isActive('/emails') ? activeColor : inactiveColor }}>
+                    <Mail size={24} />
+                    <span style={styles.label}>Emails</span>
                 </Link>
             </div>
         </nav>
@@ -73,3 +87,4 @@ const styles = {
 };
 
 export default Navbar;
+

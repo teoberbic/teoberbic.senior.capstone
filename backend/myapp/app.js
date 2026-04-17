@@ -1,4 +1,6 @@
 /**
+ * app.js 
+ * 
  * entry point of backend
  * express app: 
  * middleware - error handling and logging
@@ -7,8 +9,9 @@
  * **/
 
 var createError = require('http-errors');
-var express = require('express');
 var path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
+var express = require('express');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var indexRouter = require('./routes/index');
@@ -17,12 +20,12 @@ var collectionsRouter = require('./routes/collections');
 var socialPostsRouter = require('./routes/socialPosts');
 var productsRouter = require('./routes/products');
 var analyticsRouter = require('./routes/analytics');
+var emailsRouter = require('./routes/emails');
 
 var app = express();
 
 //mongoose setup
 
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 const mongoose = require('mongoose');
 
 // db connect
@@ -44,6 +47,9 @@ mongoose
 
 
 // middleware
+// cors in production so that frontend can access backend safely
+var cors = require('cors');
+app.use(cors());
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -56,6 +62,7 @@ app.use('/collections', collectionsRouter);
 app.use('/social-posts', socialPostsRouter);
 app.use('/products', productsRouter);
 app.use('/analytics', analyticsRouter);
+app.use('/emails', emailsRouter);
 
 
 

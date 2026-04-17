@@ -1,3 +1,10 @@
+/**
+ * CollectionDetails.jsx
+ * 
+ * page displaying products inside a specific collection
+ * 
+ * **/
+
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useExchangeRate } from '../hooks/useExchangeRate';

@@ -1,9 +1,8 @@
 /* backend/myapp/routes/analytics.js */
-
 /**
  * analytics.js
  * 
- * Gemini 3 Pro Thinking generates the router brand ID distribution starting at line 51 through line 74. I was confused on the logic on how I should get all the products and count them up. 
+ * Gemini 3 Pro Thinking generates the emtire router brand ID distribution (router.get('/brand/:brandId/distribution')) endpoint. I was confused on the logic on how I should get all the products and count them up. 
  * So it provided a logic framework to do that and I implemented it. 
  */
 const express = require('express');

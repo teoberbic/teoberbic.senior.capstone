@@ -1,8 +1,12 @@
-
 /**
- * cron job that scrapes all brands once a day
+ * cron.js
  * 
- * **/
+ * This is the page for a cron job that scrapes all brands once a day
+ * You may need to change the cron schedule to whatever you think is best
+ * You can also run this manually by running node cron.js in the terminal
+ * 
+ * 
+ */
 
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });

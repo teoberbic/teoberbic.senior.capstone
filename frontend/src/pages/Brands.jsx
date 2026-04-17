@@ -19,10 +19,14 @@ export default function Brands() {
     const [name, setName] = useState('')
     const [domain, setDomain] = useState('')
     const [instagramUrl, setInstagramUrl] = useState('')
+    const [tiktokUrl, setTiktokUrl] = useState('')
 
     const [loading, setLoading] = useState(false)
     const [msg, setMsg] = useState('')
     const [brands, setBrands] = useState([])
+
+    // Search
+    const [searchQuery, setSearchQuery] = useState('')
 
     const [isFormVisible, setIsFormVisible] = useState(false)
 
@@ -49,7 +53,8 @@ export default function Brands() {
                 body: JSON.stringify({
                     name: name.trim(),
                     domain: cleanDomain,
-                    instagramUrl: instagramUrl.trim() || null
+                    instagramUrl: instagramUrl.trim() || null,
+                    tiktokUrl: tiktokUrl.trim() || null
                 }),
             })
 
@@ -68,10 +73,10 @@ export default function Brands() {
                 setIsFormVisible(false)
             }
 
-            // Reset form
             setName('')
             setDomain('')
             setInstagramUrl('')
+            setTiktokUrl('')
 
         } catch (err) {
             console.error(err)
@@ -81,10 +86,10 @@ export default function Brands() {
     }
 
     return (
-        <div style={{ padding: '24px', paddingBottom: '100px' }}> {/* Extra padding for navbar */}
+        <div style={{ minHeight: '100vh', width: '100%', backgroundColor: '#B3B3B3', paddingBottom: '100px', padding: '24px', boxSizing: 'border-box' }}>
 
             {/* Breadcrumbs */}
-            <nav style={{ marginBottom: '16px', fontSize: '14px', color: '#666' }}>
+            <nav style={{ marginBottom: '16px', fontSize: '14px', color: '#666', padding: '0 8%' }}>
                 <Link to="/" style={{ color: '#888', textDecoration: 'none' }}>Home</Link>
                 <span style={{ margin: '0 8px' }}>&gt;</span>
                 <span style={{ color: '#333', fontWeight: 500 }}>Brands</span>
@@ -95,13 +100,10 @@ export default function Brands() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '24px'
+                marginBottom: '24px',
+                padding: '0 8%'
             }}>
                 <h1 style={{ margin: 0, fontSize: '2rem' }}>Brands</h1>
-
-
-
-
 
                 {/* Toggle Form Button */}
                 <button
@@ -112,7 +114,7 @@ export default function Brands() {
                         border: 'none',
                         padding: '10px 20px',
                         fontSize: '14px',
-                        fontWeight: 'italic',
+                        fontStyle: 'italic',
                         cursor: 'pointer'
                     }}
                 >
@@ -120,15 +122,42 @@ export default function Brands() {
                 </button>
             </header>
 
+            {/* --- FILTERS SECTION --- */}
+            <div style={{
+                backgroundColor: '#D9D9D9',
+                padding: '32px',
+                borderRadius: '12px',
+                boxShadow: '0 4px 12px rgba(241, 82, 19, 0.25)',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '24px',
+                justifyContent: 'center',
+                alignItems: 'center',
+                margin: '0 8% 40px 8%'
+            }}>
+                {/* Search */}
+                <div style={{ flex: '0 1 300px' }}>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px', color: '#333' }}>Search</label>
+                    <input
+                        type="text"
+                        placeholder="Search for a brand..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}
+                    />
+                </div>
+            </div>
+
             {/* --- ADD BRAND FORM --- */}
             {isFormVisible && (
                 <section style={{
-                    marginBottom: '80px',
-                    padding: '40px',
-                    backgroundColor: '#fc8600ff',
-                    borderRadius: '100px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    textAlign: 'center' // Center header and text
+                    marginBottom: '100px',
+                    padding: '60px 40px',
+                    backgroundColor: '#D9D9D9',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 12px rgba(241, 82, 19, 0.25)',
+                    textAlign: 'center', // Center header and text
+                    margin: '0 8% 100px 8%' // Match padding of layout, push grid way down
                 }}>
 
 
@@ -177,17 +206,28 @@ export default function Brands() {
                             />
                         </div>
 
+                        <div style={{ textAlign: 'left' }}>
+                            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: 500 }}>TikTok URL</label>
+                            <input
+                                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                placeholder="https://tiktok.com/@brand_name"
+                                value={tiktokUrl}
+                                onChange={e => setTiktokUrl(e.target.value)}
+                            />
+                        </div>
+
                         <button
                             type="submit"
                             disabled={loading}
                             style={{
                                 marginTop: '8px',
                                 padding: '12px',
-                                backgroundColor: '#333',
+                                backgroundColor: 'rgba(241, 82, 19, 0.93)',
                                 color: 'white',
                                 border: 'none',
                                 borderRadius: '6px',
-                                fontWeight: 600
+                                fontWeight: 600,
+                                cursor: 'pointer'
                             }}
                         >
                             {loading ? 'Saving...' : 'Save Brand'}
@@ -203,35 +243,47 @@ export default function Brands() {
 
 
             {/* --- BRANDS GRID --- */}
-            <section>
+            <section style={{ padding: '0 8%' }}>
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(5, 1fr)', // 5 columns wide for now
                     gap: '20px'
                 }}>
-                    {brands.map(brand => (
+                    {brands
+                        .filter(brand => brand.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .map(brand => (
                         <div key={brand._id || brand.id} style={{
-                            backgroundColor: '#f8f8f8ff',
-                            borderRadius: '2px',
-                            padding: '20px',
-                            boxShadow: '3px 3px 20px rgba(241, 82, 19, 0.93)',
-                            border: '1px solid #eaeaea',
+                            backgroundColor: '#D9D9D9',
+                            borderRadius: '12px',
+                            padding: '24px',
+                            boxShadow: '0 4px 12px rgba(241, 82, 19, 0.25)',
                             display: 'flex',
                             flexDirection: 'column',
                             justifyContent: 'space-between',
                             minHeight: '150px'
                         }}>
-                            <div>
-                                <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem' }}>
-                                    <Link to={`/brands/${brand._id || brand.id}`} style={{ textDecoration: 'none', color: '#000' }}>
-                                        {brand.name}
-                                    </Link>
-                                </h3>
-                                <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#666', wordBreak: 'break-all' }}>
-                                    <a href={`https://${brand.domain}`} target="_blank" rel="noopener noreferrer" style={{ color: '#888', textDecoration: 'none' }}>
-                                        {brand.domain}
-                                    </a>
-                                </p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                <img 
+                                    src={`https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${brand.domain}&size=128`} 
+                                    onError={(e) => { 
+                                        e.target.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; 
+                                        e.target.onerror = null; 
+                                    }}
+                                    style={{ width: '50px', height: '50px', padding: '6px', borderRadius: '50%', objectFit: 'contain', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', boxSizing: 'border-box' }} 
+                                    alt={brand.name} 
+                                />
+                                <div style={{ transition: 'margin 0.2s ease' }}>
+                                    <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem' }}>
+                                        <Link to={`/brands/${brand._id || brand.id}`} style={{ textDecoration: 'none', color: '#000' }}>
+                                            {brand.name}
+                                        </Link>
+                                    </h3>
+                                    <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#666', wordBreak: 'break-all' }}>
+                                        <a href={`https://${brand.domain}`} target="_blank" rel="noopener noreferrer" style={{ color: '#888', textDecoration: 'none' }}>
+                                            {brand.domain}
+                                        </a>
+                                    </p>
+                                </div>
                             </div>
 
                             <div style={{ fontSize: '12px', color: '#555', display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -260,6 +312,14 @@ export default function Brands() {
                                     <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #f0f0f0' }}>
                                         <a href={brand.instagramUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#007bff', wordBreak: 'break-all', fontSize: '11px' }}>
                                             {brand.instagramUrl}
+                                        </a>
+                                    </div>
+                                )}
+
+                                {brand.tiktokUrl && (
+                                    <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #f0f0f0' }}>
+                                        <a href={brand.tiktokUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#007bff', wordBreak: 'break-all', fontSize: '11px' }}>
+                                            {brand.tiktokUrl}
                                         </a>
                                     </div>
                                 )}
